@@ -133,6 +133,23 @@ def get_success_status_code(operation: dict) -> str | None:
     return sorted(success_codes)[0]
 
 
+def get_error_status_code(operation: dict) -> str | None:
+    """Return the preferred documented 4xx response code for negative tests."""
+    responses = operation.get("responses", {})
+
+    if "400" in responses:
+        return "400"
+
+    if "422" in responses:
+        return "422"
+
+    error_codes = [code for code in responses if code.startswith("4")]
+    if not error_codes:
+        return None
+
+    return sorted(error_codes)[0]
+
+
 def get_response_schema(operation: dict, spec: dict) -> dict | None:
     """Return the JSON schema for the documented success response, if defined."""
     responses = operation.get("responses", {})
@@ -273,7 +290,13 @@ def generate_negative_test_functions(method: str, path: str, operation: dict, sp
 
     safe_name = sanitize_path_for_name(path)
     request_path = replace_path_params(path)
+    error_status_code = get_error_status_code(operation)
     test_functions = []
+
+    if error_status_code is not None:
+        error_assertion = f"assert response.status_code == {error_status_code}"
+    else:
+        error_assertion = "assert response.status_code >= 400"
 
     for field_name, payload in generate_missing_required_payloads(schema, spec):
         body_text = format_python_literal(payload)
@@ -281,7 +304,7 @@ def generate_negative_test_functions(method: str, path: str, operation: dict, sp
             f'''def test_{method_lower}_{safe_name}_missing_{field_name}():
     payload = {body_text}
     response = requests.{method_lower}(f"{{BASE_URL}}{request_path}", json=payload)
-    assert response.status_code >= 400
+    {error_assertion}
 '''
         )
 
@@ -291,7 +314,7 @@ def generate_negative_test_functions(method: str, path: str, operation: dict, sp
             f'''def test_{method_lower}_{safe_name}_invalid_{field_name}_enum():
     payload = {body_text}
     response = requests.{method_lower}(f"{{BASE_URL}}{request_path}", json=payload)
-    assert response.status_code >= 400
+    {error_assertion}
 '''
         )
 

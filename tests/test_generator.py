@@ -4,13 +4,14 @@ from generator import (
     generate_missing_required_payloads,
     generate_sample_value,
     generate_test_file,
+    get_error_status_code,
     get_json_request_body,
     get_response_schema,
     get_schema_from_operation,
     get_success_status_code,
     replace_path_params,
     resolve_ref,
-    sanitize_path_for_name,
+    sanitize_path_for_name
 )
 
 
@@ -341,3 +342,100 @@ def test_generate_test_file_uses_documented_success_status_code() -> None:
     output = generate_test_file(endpoints, spec)
 
     assert "assert response.status_code == 201" in output
+
+
+def test_get_error_status_code_prefers_400() -> None:
+    operation = {
+        "responses": {
+            "201": {"description": "Created"},
+            "400": {"description": "Bad request"},
+            "422": {"description": "Validation error"},
+        }
+    }
+
+    result = get_error_status_code(operation)
+
+    assert result == "400"
+
+
+def test_get_error_status_code_falls_back_to_422() -> None:
+    operation = {
+        "responses": {
+            "201": {"description": "Created"},
+            "422": {"description": "Validation error"},
+        }
+    }
+
+    result = get_error_status_code(operation)
+
+    assert result == "422"
+
+
+def test_get_error_status_code_returns_first_4xx_when_400_and_422_missing() -> None:
+    operation = {
+        "responses": {
+            "201": {"description": "Created"},
+            "404": {"description": "Not found"},
+        }
+    }
+
+    result = get_error_status_code(operation)
+
+    assert result == "404"
+
+
+def test_get_error_status_code_returns_none_when_no_4xx_exists() -> None:
+    operation = {
+        "responses": {
+            "200": {"description": "OK"},
+            "500": {"description": "Server error"},
+        }
+    }
+
+    result = get_error_status_code(operation)
+
+    assert result is None
+
+
+def test_generate_test_file_uses_documented_4xx_response_code_in_negative_tests() -> None:
+    spec = {
+        "paths": {
+            "/users": {
+                "post": {
+                    "requestBody": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserCreate"
+                                }
+                            }
+                        }
+                    },
+                    "responses": {
+                        "201": {"description": "Created"},
+                        "400": {"description": "Bad request"},
+                    },
+                }
+            }
+        },
+        "components": {
+            "schemas": {
+                "UserCreate": {
+                    "type": "object",
+                    "required": ["name"],
+                    "properties": {
+                        "name": {"type": "string", "example": "Ryan"},
+                        "role": {"type": "string", "enum": ["admin", "user"], "example": "admin"},
+                    },
+                }
+            }
+        },
+    }
+
+    endpoints = [("POST", "/users", spec["paths"]["/users"]["post"])]
+
+    output = generate_test_file(endpoints, spec)
+
+    assert "def test_post_users_missing_name():" in output
+    assert "def test_post_users_invalid_role_enum():" in output
+    assert "assert response.status_code == 400" in output
