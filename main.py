@@ -33,10 +33,13 @@ def main() -> None:
         return
 
     output = generate_test_file(endpoints, spec)
+
     output_path = Path(args.output)
     write_test_file(output_path, output)
 
-    print(f"Generated {output_path} with {len(endpoints)} test(s).")
+    test_count = output.count("def test_")
+
+    print(f"Generated {output_path} with {test_count} test(s).")
 
 
 if __name__ == "__main__":
