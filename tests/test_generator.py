@@ -255,8 +255,11 @@ def test_generate_test_file_uses_example_and_default_values() -> None:
         },
     }
 
+
+def test_generate_test_file_uses_custom_base_url() -> None:
+    spec = make_sample_spec()
     endpoints = [("POST", "/users", spec["paths"]["/users"]["post"])]
 
-    output = generate_test_file(endpoints, spec)
+    output = generate_test_file(endpoints, spec, "https://api.dev.com")
 
-    assert "payload = {'name': 'Ryan', 'age': 25}" in output
+    assert 'BASE_URL = "https://api.dev.com"' in output

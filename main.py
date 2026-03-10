@@ -22,6 +22,12 @@ def main() -> None:
         help="Output test file (default: generated_api_tests.py)"
     )
 
+    parser.add_argument(
+    "--base-url",
+    default="http://localhost:8000",
+    help="Base URL used in the generated tests (default: http://localhost:8000)"
+)
+
     args = parser.parse_args()
 
     file_path = Path(args.spec)

@@ -288,13 +288,17 @@ def generate_negative_test_functions(method: str, path: str, operation: dict, sp
     return test_functions
 
 
-def generate_test_file(endpoints: list[tuple[str, str, dict]], spec: dict) -> str:
+def generate_test_file(
+    endpoints: list[tuple[str, str, dict]],
+    spec: dict,
+    base_url: str = "http://localhost:8000",
+) -> str:
     """Generate the full contents of the output test file."""
     lines = [
         "import requests",
         "import jsonschema",
         "",
-        'BASE_URL = "http://localhost:8000"',
+        f'BASE_URL = "{base_url}"',
         "",
         "",
     ]
