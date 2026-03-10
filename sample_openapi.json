@@ -38,15 +38,10 @@
             "type": "integer",
             "default": 25
           },
-          "active": {
-            "type": "boolean"
-          },
-          "tags": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "example": "tester"
-            }
+          "role": {
+            "type": "string",
+            "enum": ["admin", "user"],
+            "example": "admin"
           }
         }
       }
