@@ -1,22 +1,47 @@
+import argparse
 import sys
 import json
-import argparse
 from pathlib import Path
+
+import yaml
 
 
 HTTP_METHODS = {"get", "post", "put", "delete", "patch", "options", "head"}
 
 
 def load_openapi_spec(file_path: Path) -> dict:
-    """Load an OpenAPI spec from a JSON file."""
+    """Load an OpenAPI spec from a JSON or YAML file."""
     try:
         with file_path.open("r", encoding="utf-8") as f:
-            return json.load(f)
+            suffix = file_path.suffix.lower()
+
+            if suffix == ".json":
+                return json.load(f)
+
+            if suffix in {".yaml", ".yml"}:
+                data = yaml.safe_load(f)
+                if not isinstance(data, dict):
+                    print(f"Error: YAML file did not contain a valid OpenAPI object: {file_path}")
+                    sys.exit(1)
+                return data
+
+            print(
+                f"Error: unsupported file type '{file_path.suffix}'. "
+                "Use .json, .yaml, or .yml"
+            )
+            sys.exit(1)
+
     except FileNotFoundError:
         print(f"Error: file not found: {file_path}")
         sys.exit(1)
+
     except json.JSONDecodeError as e:
         print(f"Error: invalid JSON in {file_path}")
+        print(f"Details: {e}")
+        sys.exit(1)
+
+    except yaml.YAMLError as e:
+        print(f"Error: invalid YAML in {file_path}")
         print(f"Details: {e}")
         sys.exit(1)
 
@@ -176,7 +201,7 @@ def main() -> None:
 
     parser.add_argument(
         "spec",
-        help="Path to the OpenAPI spec file (JSON)."
+        help="Path to the OpenAPI spec file (.json, .yaml, or .yml)."
     )
 
     parser.add_argument(
