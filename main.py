@@ -1,5 +1,6 @@
 import sys
 import json
+import argparse
 from pathlib import Path
 
 
@@ -169,11 +170,25 @@ def write_test_file(output_path: Path, content: str) -> None:
 
 
 def main() -> None:
-    if len(sys.argv) != 2:
-        print("Usage: python main.py <openapi_spec.json>")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description="Generate pytest API tests from an OpenAPI spec."
+    )
 
-    file_path = Path(sys.argv[1])
+    parser.add_argument(
+        "spec",
+        help="Path to the OpenAPI spec file (JSON)."
+    )
+
+    parser.add_argument(
+        "-o",
+        "--output",
+        default="test_api.py",
+        help="Output test file (default: test_api.py)"
+    )
+
+    args = parser.parse_args()
+
+    file_path = Path(args.spec)
     spec = load_openapi_spec(file_path)
     endpoints = extract_endpoints(spec)
 
@@ -182,7 +197,8 @@ def main() -> None:
         return
 
     output = generate_test_file(endpoints, spec)
-    output_path = Path("test_api.py")
+
+    output_path = Path(args.output)
     write_test_file(output_path, output)
 
     print(f"Generated {output_path} with {len(endpoints)} test(s).")
