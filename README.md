@@ -8,20 +8,58 @@ This project was built to reduce the repetitive work involved in writing API tes
 
 ## Features
 
-- Generate pytest tests from OpenAPI specs
+- Generate pytest API tests directly from an OpenAPI spec
 - Supports **JSON and YAML** OpenAPI files
 - Automatically discovers API endpoints
-- Generates starter tests for HTTP methods:
+- Generates tests for common HTTP methods:
   - GET
   - POST
   - PUT
   - PATCH
   - DELETE
-- Generates sample request bodies from OpenAPI schemas
-- Resolves local `$ref` schemas from `components/schemas`
-- Handles path parameters (e.g. `/users/{id}` → `/users/1`)
-- CLI interface with configurable output file
-- Unit tests for generator logic
+
+### Smart Payload Generation
+
+Request payloads are generated from OpenAPI schemas with support for:
+
+- `example` values
+- `default` values
+- required fields
+- enums
+- `$ref` schema resolution
+
+### Automatic Negative Tests
+
+The generator creates negative tests for:
+
+- missing required fields
+- invalid enum values
+
+### Response Validation
+
+Generated tests validate:
+
+- expected response status codes from the OpenAPI spec
+- response JSON schema using `jsonschema`
+
+### CLI Options
+
+```
+python main.py spec.yaml
+```
+
+Optional arguments:
+
+```
+--output <file>
+--base-url <url>
+```
+
+Example:
+
+```
+python main.py openapi.yaml --base-url https://api.dev.com
+```
 
 ---
 
@@ -151,13 +189,13 @@ openapi-test-generator/
 
 ## Future Improvements
 
-Potential enhancements for the tool:
+Possible future enhancements:
 
-- Support OpenAPI `example` and `default` values
-- Respect `required` schema fields
-- Generate negative test cases
-- Authentication support (Bearer / API keys)
-- Package as a pip-installable CLI tool
+- Authentication support (Bearer tokens, API keys)
+- Response validation for additional response codes
+- Nested schema negative tests
+- Generating tests for all documented response codes
+- Packaging as a pip-installable CLI
 - CI integration
 
 ---
