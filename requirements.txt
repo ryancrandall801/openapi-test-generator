@@ -1,3 +1,4 @@
 PyYAML
 requests
 pytest
+jsonschema

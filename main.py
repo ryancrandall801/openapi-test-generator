@@ -39,7 +39,7 @@ def main() -> None:
 
     test_count = output.count("def test_")
 
-    print(f"Generated {output_path} with {test_count} test(s).")
+    print(f"Generated {output_path.resolve()} with {test_count} test(s).")
 
 
 if __name__ == "__main__":

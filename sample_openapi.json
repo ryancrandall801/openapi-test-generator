@@ -16,6 +16,18 @@
               }
             }
           }
+        },
+        "responses": {
+          "201": {
+            "description": "User created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -42,6 +54,21 @@
             "type": "string",
             "enum": ["admin", "user"],
             "example": "admin"
+          }
+        }
+      },
+      "UserResponse": {
+        "type": "object",
+        "required": ["id", "name", "email"],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
           }
         }
       }

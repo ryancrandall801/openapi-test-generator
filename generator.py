@@ -122,6 +122,33 @@ def get_schema_from_operation(operation: dict, spec: dict) -> dict | None:
     return schema
 
 
+def get_response_schema(operation: dict, spec: dict) -> dict | None:
+    """Return the JSON schema for a successful response if defined."""
+    responses = operation.get("responses", {})
+
+    success_response = None
+
+    for code in responses:
+        if code.startswith("2"):
+            success_response = responses[code]
+            break
+
+    if not success_response:
+        return None
+
+    content = success_response.get("content", {})
+    json_content = content.get("application/json", {})
+    schema = json_content.get("schema")
+
+    if not schema:
+        return None
+
+    if "$ref" in schema:
+        return resolve_ref(schema["$ref"], spec)
+
+    return schema
+
+
 def generate_missing_required_payloads(schema: dict, spec: dict) -> list[tuple[str, object]]:
     """
     Generate payloads with one required field removed at a time.
@@ -193,19 +220,34 @@ def generate_test_function(method: str, path: str, operation: dict, spec: dict) 
     safe_name = sanitize_path_for_name(path)
     method_lower = method.lower()
     request_path = replace_path_params(path)
+
     request_body = get_json_request_body(operation, spec)
+    response_schema = get_response_schema(operation, spec)
+
+    lines = [f"def test_{method_lower}_{safe_name}():"]
 
     if request_body is not None and method_lower in {"post", "put", "patch"}:
         body_text = format_python_literal(request_body)
-        return f'''def test_{method_lower}_{safe_name}():
-    payload = {body_text}
-    response = requests.{method_lower}(f"{{BASE_URL}}{request_path}", json=payload)
-    assert response.status_code < 500
-'''
-    return f'''def test_{method_lower}_{safe_name}():
-    response = requests.{method_lower}(f"{{BASE_URL}}{request_path}")
-    assert response.status_code < 500
-'''
+        lines.append(f"    payload = {body_text}")
+        lines.append(
+            f'    response = requests.{method_lower}(f"{{BASE_URL}}{request_path}", json=payload)'
+        )
+    else:
+        lines.append(
+            f'    response = requests.{method_lower}(f"{{BASE_URL}}{request_path}")'
+        )
+
+    lines.append("    assert response.status_code < 500")
+
+    if response_schema:
+        schema_text = format_python_literal(response_schema)
+        lines.append("    data = response.json()")
+        lines.append(f"    schema = {schema_text}")
+        lines.append("    jsonschema.validate(data, schema)")
+
+    lines.append("")
+
+    return "\n".join(lines)
 
 
 def generate_negative_test_functions(method: str, path: str, operation: dict, spec: dict) -> list[str]:
@@ -250,6 +292,7 @@ def generate_test_file(endpoints: list[tuple[str, str, dict]], spec: dict) -> st
     """Generate the full contents of the output test file."""
     lines = [
         "import requests",
+        "import jsonschema",
         "",
         'BASE_URL = "http://localhost:8000"',
         "",
