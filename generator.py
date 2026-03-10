@@ -122,20 +122,26 @@ def get_schema_from_operation(operation: dict, spec: dict) -> dict | None:
     return schema
 
 
-def get_response_schema(operation: dict, spec: dict) -> dict | None:
-    """Return the JSON schema for a successful response if defined."""
+def get_success_status_code(operation: dict) -> str | None:
+    """Return the first documented 2xx response code for an operation."""
     responses = operation.get("responses", {})
 
-    success_response = None
-
-    for code in responses:
-        if code.startswith("2"):
-            success_response = responses[code]
-            break
-
-    if not success_response:
+    success_codes = [code for code in responses if code.startswith("2")]
+    if not success_codes:
         return None
 
+    return sorted(success_codes)[0]
+
+
+def get_response_schema(operation: dict, spec: dict) -> dict | None:
+    """Return the JSON schema for the documented success response, if defined."""
+    responses = operation.get("responses", {})
+    success_code = get_success_status_code(operation)
+
+    if not success_code:
+        return None
+
+    success_response = responses.get(success_code, {})
     content = success_response.get("content", {})
     json_content = content.get("application/json", {})
     schema = json_content.get("schema")
@@ -223,6 +229,7 @@ def generate_test_function(method: str, path: str, operation: dict, spec: dict) 
 
     request_body = get_json_request_body(operation, spec)
     response_schema = get_response_schema(operation, spec)
+    success_status_code = get_success_status_code(operation)
 
     lines = [f"def test_{method_lower}_{safe_name}():"]
 
@@ -237,7 +244,10 @@ def generate_test_function(method: str, path: str, operation: dict, spec: dict) 
             f'    response = requests.{method_lower}(f"{{BASE_URL}}{request_path}")'
         )
 
-    lines.append("    assert response.status_code < 500")
+    if success_status_code is not None:
+        lines.append(f"    assert response.status_code == {success_status_code}")
+    else:
+        lines.append("    assert response.status_code < 500")
 
     if response_schema:
         schema_text = format_python_literal(response_schema)

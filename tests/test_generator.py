@@ -1,8 +1,13 @@
 from generator import (
     format_python_literal,
+    generate_invalid_enum_payloads,
+    generate_missing_required_payloads,
     generate_sample_value,
     generate_test_file,
     get_json_request_body,
+    get_response_schema,
+    get_schema_from_operation,
+    get_success_status_code,
     replace_path_params,
     resolve_ref,
     sanitize_path_for_name,
@@ -27,7 +32,12 @@ def make_sample_spec() -> dict:
                                 }
                             }
                         }
-                    }
+                    },
+                    "responses": {
+                        "201": {
+                            "description": "Created"
+                        }
+                    },
                 }
             }
         },
@@ -160,6 +170,7 @@ def test_generate_test_file_includes_generated_post_test() -> None:
     assert "def test_post_users():" in output
     assert "payload = {'name': 'string', 'age': 0, 'active': True, 'tags': ['string']}" in output
     assert 'response = requests.post(f"{BASE_URL}/users", json=payload)' in output
+    assert "assert response.status_code == 201" in output
 
 
 def test_generate_test_file_replaces_path_params_in_output() -> None:
@@ -263,3 +274,70 @@ def test_generate_test_file_uses_custom_base_url() -> None:
     output = generate_test_file(endpoints, spec, "https://api.dev.com")
 
     assert 'BASE_URL = "https://api.dev.com"' in output
+
+
+def test_get_success_status_code_returns_first_2xx_code() -> None:
+    operation = {
+        "responses": {
+            "201": {"description": "Created"},
+            "400": {"description": "Bad request"},
+        }
+    }
+
+    result = get_success_status_code(operation)
+
+    assert result == "201"
+
+
+def test_get_success_status_code_returns_none_when_no_2xx_exists() -> None:
+    operation = {
+        "responses": {
+            "400": {"description": "Bad request"},
+            "404": {"description": "Not found"},
+        }
+    }
+
+    result = get_success_status_code(operation)
+
+    assert result is None
+
+
+def test_generate_test_file_uses_documented_success_status_code() -> None:
+    spec = {
+        "paths": {
+            "/users": {
+                "post": {
+                    "requestBody": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserCreate"
+                                }
+                            }
+                        }
+                    },
+                    "responses": {
+                        "201": {
+                            "description": "Created"
+                        }
+                    },
+                }
+            }
+        },
+        "components": {
+            "schemas": {
+                "UserCreate": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string", "example": "Ryan"},
+                    },
+                }
+            }
+        },
+    }
+
+    endpoints = [("POST", "/users", spec["paths"]["/users"]["post"])]
+
+    output = generate_test_file(endpoints, spec)
+
+    assert "assert response.status_code == 201" in output
