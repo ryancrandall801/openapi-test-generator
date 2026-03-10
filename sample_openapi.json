@@ -6,9 +6,6 @@
   },
   "paths": {
     "/users": {
-      "get": {
-        "summary": "Get users"
-      },
       "post": {
         "summary": "Create user",
         "requestBody": {
@@ -21,24 +18,35 @@
           }
         }
       }
-    },
-    "/users/{id}": {
-      "delete": {
-        "summary": "Delete user"
-      }
     }
   },
   "components": {
     "schemas": {
       "UserCreate": {
         "type": "object",
+        "required": ["name", "email"],
         "properties": {
-          "name": { "type": "string" },
-          "age": { "type": "integer" },
-          "active": { "type": "boolean" },
+          "name": {
+            "type": "string",
+            "example": "Ryan"
+          },
+          "email": {
+            "type": "string",
+            "example": "ryan@example.com"
+          },
+          "age": {
+            "type": "integer",
+            "default": 25
+          },
+          "active": {
+            "type": "boolean"
+          },
           "tags": {
             "type": "array",
-            "items": { "type": "string" }
+            "items": {
+              "type": "string",
+              "example": "tester"
+            }
           }
         }
       }

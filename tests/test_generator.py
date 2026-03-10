@@ -169,3 +169,94 @@ def test_generate_test_file_replaces_path_params_in_output() -> None:
     output = generate_test_file(endpoints, spec)
 
     assert 'response = requests.delete(f"{BASE_URL}/users/1")' in output
+
+
+def test_generate_sample_value_uses_example_when_present() -> None:
+    spec = make_sample_spec()
+
+    value = generate_sample_value(
+        {"type": "string", "example": "Ryan"},
+        spec,
+    )
+
+    assert value == "Ryan"
+
+
+def test_generate_sample_value_uses_default_when_present() -> None:
+    spec = make_sample_spec()
+
+    value = generate_sample_value(
+        {"type": "integer", "default": 25},
+        spec,
+    )
+
+    assert value == 25
+
+
+def test_generate_sample_value_handles_required_example_and_default_fields() -> None:
+    spec = {
+        "components": {
+            "schemas": {
+                "UserCreate": {
+                    "type": "object",
+                    "required": ["name", "email"],
+                    "properties": {
+                        "name": {"type": "string", "example": "Ryan"},
+                        "email": {"type": "string", "example": "ryan@example.com"},
+                        "age": {"type": "integer", "default": 25},
+                        "active": {"type": "boolean"},
+                    },
+                }
+            }
+        }
+    }
+
+    value = generate_sample_value(
+        {"$ref": "#/components/schemas/UserCreate"},
+        spec,
+    )
+
+    assert value == {
+        "name": "Ryan",
+        "email": "ryan@example.com",
+        "age": 25,
+        "active": True,
+    }
+
+
+def test_generate_test_file_uses_example_and_default_values() -> None:
+    spec = {
+        "paths": {
+            "/users": {
+                "post": {
+                    "requestBody": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserCreate"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "components": {
+            "schemas": {
+                "UserCreate": {
+                    "type": "object",
+                    "required": ["name"],
+                    "properties": {
+                        "name": {"type": "string", "example": "Ryan"},
+                        "age": {"type": "integer", "default": 25},
+                    },
+                }
+            }
+        },
+    }
+
+    endpoints = [("POST", "/users", spec["paths"]["/users"]["post"])]
+
+    output = generate_test_file(endpoints, spec)
+
+    assert "payload = {'name': 'Ryan', 'age': 25}" in output

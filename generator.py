@@ -50,25 +50,45 @@ def generate_sample_value(schema: dict, spec: dict) -> object:
         resolved_schema = resolve_ref(schema["$ref"], spec)
         return generate_sample_value(resolved_schema, spec)
 
+    if "example" in schema:
+        return schema["example"]
+
+    if "default" in schema:
+        return schema["default"]
+
     schema_type = schema.get("type")
 
     if schema_type == "string":
         return "string"
+
     if schema_type == "integer":
         return 0
+
     if schema_type == "number":
         return 0
+
     if schema_type == "boolean":
         return True
+
     if schema_type == "array":
         items_schema = schema.get("items", {})
         return [generate_sample_value(items_schema, spec)]
+
     if schema_type == "object":
         properties = schema.get("properties", {})
-        return {
-            prop_name: generate_sample_value(prop_schema, spec)
-            for prop_name, prop_schema in properties.items()
-        }
+        required_fields = set(schema.get("required", []))
+
+        result = {}
+
+        for prop_name, prop_schema in properties.items():
+            if prop_name in required_fields:
+                result[prop_name] = generate_sample_value(prop_schema, spec)
+
+        for prop_name, prop_schema in properties.items():
+            if prop_name not in result:
+                result[prop_name] = generate_sample_value(prop_schema, spec)
+
+        return result
 
     return "string"
 
@@ -131,3 +151,4 @@ def generate_test_file(endpoints: list[tuple[str, str, dict]], spec: dict) -> st
 def write_test_file(output_path: Path, content: str) -> None:
     """Write generated test content to disk."""
     output_path.write_text(content, encoding="utf-8")
+    
