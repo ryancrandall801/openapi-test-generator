@@ -9,7 +9,8 @@ def test_get_users():
 
 
 def test_post_users():
-    response = requests.post(f"{BASE_URL}/users")
+    payload = {'name': 'string', 'age': 0, 'active': True, 'tags': ['string']}
+    response = requests.post(f"{BASE_URL}/users", json=payload)
     assert response.status_code < 500
 
 

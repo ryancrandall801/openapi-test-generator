@@ -10,12 +10,37 @@
         "summary": "Get users"
       },
       "post": {
-        "summary": "Create user"
+        "summary": "Create user",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreate"
+              }
+            }
+          }
+        }
       }
     },
     "/users/{id}": {
       "delete": {
         "summary": "Delete user"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "UserCreate": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "age": { "type": "integer" },
+          "active": { "type": "boolean" },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
       }
     }
   }
