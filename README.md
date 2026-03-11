@@ -85,7 +85,7 @@ jsonschema.validate(data, schema)
 Generate tests from an OpenAPI spec:
 
 ```bash
-python main.py openapi.yaml
+openapi-testgen openapi.yaml
 ```
 
 Optional arguments:
@@ -98,7 +98,7 @@ Optional arguments:
 Example:
 
 ```bash
-python main.py openapi.yaml --base-url https://api.dev.com
+openapi-testgen openapi.yaml --base-url https://api.dev.com
 ```
 
 Default output file:
@@ -154,7 +154,7 @@ components:
 Running:
 
 ```bash
-python main.py openapi.yaml --base-url https://api.dev.com
+openapi-testgen openapi.yaml --base-url https://api.dev.com
 ```
 
 Produces:

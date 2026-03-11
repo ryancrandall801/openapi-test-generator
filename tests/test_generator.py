@@ -1,4 +1,4 @@
-from generator import (
+from openapi_test_generator.generator import (
     format_python_literal,
     generate_invalid_enum_payloads,
     generate_missing_required_payloads,
@@ -12,7 +12,7 @@ from generator import (
     replace_path_params,
     resolve_ref,
     sanitize_path_for_name,
-    write_test_file
+    write_test_file,
 )
 
 

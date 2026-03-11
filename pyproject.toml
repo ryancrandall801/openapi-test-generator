@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.scripts]
-openapi-testgen = "main:main"
+openapi-testgen = "openapi_test_generator.cli:main"
 
-[tool.setuptools]
-py-modules = ["main", "parser", "generator"]
+[tool.setuptools.packages.find]
+include = ["openapi_test_generator*"]

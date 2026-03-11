@@ -1,8 +1,8 @@
 import argparse
 from pathlib import Path
 
-from generator import generate_test_file, write_test_file
-from parser import extract_endpoints, load_openapi_spec
+from openapi_test_generator.generator import generate_test_file, write_test_file
+from openapi_test_generator.parser import extract_endpoints, load_openapi_spec
 
 
 def main() -> None:
@@ -23,10 +23,10 @@ def main() -> None:
     )
 
     parser.add_argument(
-    "--base-url",
-    default="http://localhost:8000",
-    help="Base URL used in the generated tests (default: http://localhost:8000)"
-)
+        "--base-url",
+        default="http://localhost:8000",
+        help="Base URL used in the generated tests (default: http://localhost:8000)"
+    )
 
     args = parser.parse_args()
 
@@ -38,13 +38,11 @@ def main() -> None:
         print("No endpoints found.")
         return
 
-    output = generate_test_file(endpoints, spec)
-
+    output = generate_test_file(endpoints, spec, args.base_url)
     output_path = Path(args.output)
     write_test_file(output_path, output)
 
     test_count = output.count("def test_")
-
     print(f"Generated {output_path.resolve()} with {test_count} test(s).")
 
 
