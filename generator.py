@@ -350,4 +350,5 @@ def generate_test_file(
 
 def write_test_file(output_path: Path, content: str) -> None:
     """Write generated test content to disk."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(content, encoding="utf-8")

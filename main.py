@@ -18,8 +18,8 @@ def main() -> None:
     parser.add_argument(
         "-o",
         "--output",
-        default="generated_api_tests.py",
-        help="Output test file (default: generated_api_tests.py)"
+        default="generated/generated_api_tests.py",
+        help="Output test file (default: generated/generated_api_tests.py)"
     )
 
     parser.add_argument(

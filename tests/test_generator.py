@@ -11,7 +11,8 @@ from generator import (
     get_success_status_code,
     replace_path_params,
     resolve_ref,
-    sanitize_path_for_name
+    sanitize_path_for_name,
+    write_test_file
 )
 
 
@@ -439,3 +440,13 @@ def test_generate_test_file_uses_documented_4xx_response_code_in_negative_tests(
     assert "def test_post_users_missing_name():" in output
     assert "def test_post_users_invalid_role_enum():" in output
     assert "assert response.status_code == 400" in output
+
+
+def test_write_test_file_creates_parent_directory(tmp_path) -> None:
+    output_path = tmp_path / "generated" / "generated_api_tests.py"
+    content = "def test_example():\n    pass\n"
+
+    write_test_file(output_path, content)
+
+    assert output_path.exists()
+    assert output_path.read_text(encoding="utf-8") == content

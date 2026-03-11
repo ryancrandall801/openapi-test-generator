@@ -104,7 +104,7 @@ python main.py openapi.yaml --base-url https://api.dev.com
 Default output file:
 
 ```
-generated_api_tests.py
+generated/generated_api_tests.py
 ```
 
 ---
@@ -160,7 +160,7 @@ python main.py openapi.yaml --base-url https://api.dev.com
 Produces:
 
 ```
-Generated generated_api_tests.py with 4 test(s).
+Generated generated/generated_api_tests.py with 4 test(s).
 ```
 
 Generated file:
