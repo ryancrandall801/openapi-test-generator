@@ -1,6 +1,121 @@
 from pathlib import Path
 
 
+def resolve_ref(ref: str, spec: dict) -> dict:
+    """
+    Resolve a local OpenAPI $ref like '#/components/schemas/User'.
+
+    Only supports local refs for now.
+    """
+    if not ref.startswith("#/"):
+        raise ValueError(f"Only local refs are supported right now: {ref}")
+
+    current = spec
+    parts = ref[2:].split("/")
+
+    for part in parts:
+        if part not in current:
+            raise KeyError(f"Could not resolve ref: {ref}")
+        current = current[part]
+
+    if not isinstance(current, dict):
+        raise ValueError(f"Resolved ref is not a schema object: {ref}")
+
+    return current
+
+
+def dereference_schema(schema: object, spec: dict) -> object:
+    """Recursively resolve local $ref values inside a schema."""
+    if isinstance(schema, dict):
+        if "$ref" in schema:
+            resolved = resolve_ref(schema["$ref"], spec)
+            return dereference_schema(resolved, spec)
+
+        return {
+            key: dereference_schema(value, spec)
+            for key, value in schema.items()
+        }
+
+    if isinstance(schema, list):
+        return [dereference_schema(item, spec) for item in schema]
+
+    return schema
+
+
+def sanitize_path_for_name(path: str) -> str:
+    """Convert an API path into something safe for a Python test name."""
+    cleaned = path.strip("/")
+    cleaned = cleaned.replace("/", "_")
+    cleaned = cleaned.replace("{", "")
+    cleaned = cleaned.replace("}", "")
+    cleaned = cleaned.replace("-", "_")
+    return cleaned or "root"
+
+
+def get_path_parameters(operation: dict) -> list[dict]:
+    """Return path parameters defined on an operation."""
+    parameters = operation.get("parameters", [])
+    return [
+        parameter
+        for parameter in parameters
+        if parameter.get("in") == "path"
+    ]
+
+
+def generate_path_param_value(parameter: dict, spec: dict) -> str:
+    """Generate a sample value for a path parameter."""
+    schema = parameter.get("schema", {})
+
+    if "$ref" in schema:
+        schema = resolve_ref(schema["$ref"], spec)
+
+    if "example" in parameter:
+        return str(parameter["example"])
+
+    if "example" in schema:
+        return str(schema["example"])
+
+    if "default" in schema:
+        return str(schema["default"])
+
+    param_name = parameter.get("name", "value")
+    schema_type = schema.get("type")
+
+    if schema_type == "integer":
+        minimum = schema.get("minimum")
+        if minimum is not None:
+            return str(minimum)
+        return "1"
+
+    if schema_type == "number":
+        minimum = schema.get("minimum")
+        if minimum is not None:
+            return str(minimum)
+        return "1"
+
+    if schema_type == "boolean":
+        return "true"
+
+    return f"example-{param_name}"
+
+
+def replace_path_params(path: str, operation: dict, spec: dict) -> str:
+    """Replace OpenAPI path params with generated sample values."""
+    result = path
+    path_parameters = get_path_parameters(operation)
+
+    for parameter in path_parameters:
+        param_name = parameter.get("name")
+        if not param_name:
+            continue
+
+        placeholder = "{" + param_name + "}"
+        sample_value = generate_path_param_value(parameter, spec)
+        result = result.replace(placeholder, sample_value)
+
+    return result
+
+
 def build_headers_code(
     auth_header_name: str | None,
     auth_token_env: str | None,
@@ -42,47 +157,9 @@ def build_request_call(
     return f"response = requests.{method_lower}({', '.join(args)})"
 
 
-def sanitize_path_for_name(path: str) -> str:
-    """Convert an API path into something safe for a Python test name."""
-    cleaned = path.strip("/")
-    cleaned = cleaned.replace("/", "_")
-    cleaned = cleaned.replace("{", "")
-    cleaned = cleaned.replace("}", "")
-    cleaned = cleaned.replace("-", "_")
-    return cleaned or "root"
-
-
-def replace_path_params(path: str) -> str:
-    """Replace OpenAPI path params like {id} with a sample value."""
-    result = path
-    while "{" in result and "}" in result:
-        start = result.index("{")
-        end = result.index("}", start)
-        result = result[:start] + "1" + result[end + 1 :]
-    return result
-
-
-def resolve_ref(ref: str, spec: dict) -> dict:
-    """
-    Resolve a local OpenAPI $ref like '#/components/schemas/User'.
-
-    Only supports local refs for now.
-    """
-    if not ref.startswith("#/"):
-        raise ValueError(f"Only local refs are supported right now: {ref}")
-
-    current = spec
-    parts = ref[2:].split("/")
-
-    for part in parts:
-        if part not in current:
-            raise KeyError(f"Could not resolve ref: {ref}")
-        current = current[part]
-
-    if not isinstance(current, dict):
-        raise ValueError(f"Resolved ref is not a schema object: {ref}")
-
-    return current
+def format_python_literal(value: object) -> str:
+    """Convert a Python value into nicely formatted Python source code."""
+    return repr(value)
 
 
 def generate_sample_value(schema: dict, spec: dict) -> object:
@@ -192,7 +269,7 @@ def get_error_status_code(operation: dict) -> str | None:
 
 
 def get_response_schema(operation: dict, spec: dict) -> dict | None:
-    """Return the JSON schema for the documented success response, if defined."""
+    """Return the fully dereferenced JSON schema for the documented success response, if defined."""
     responses = operation.get("responses", {})
     success_code = get_success_status_code(operation)
 
@@ -207,10 +284,7 @@ def get_response_schema(operation: dict, spec: dict) -> dict | None:
     if not schema:
         return None
 
-    if "$ref" in schema:
-        return resolve_ref(schema["$ref"], spec)
-
-    return schema
+    return dereference_schema(schema, spec)
 
 
 def generate_missing_required_payloads(schema: dict, spec: dict) -> list[tuple[str, object]]:
@@ -274,11 +348,6 @@ def generate_invalid_enum_payloads(schema: dict, spec: dict) -> list[tuple[str, 
     return results
 
 
-def format_python_literal(value: object) -> str:
-    """Convert a Python value into nicely formatted Python source code."""
-    return repr(value)
-
-
 def generate_test_function(
     method: str,
     path: str,
@@ -289,7 +358,7 @@ def generate_test_function(
     """Generate one starter pytest test function."""
     safe_name = sanitize_path_for_name(path)
     method_lower = method.lower()
-    request_path = replace_path_params(path)
+    request_path = replace_path_params(path, operation, spec)
 
     request_body = get_json_request_body(operation, spec)
     response_schema = get_response_schema(operation, spec)
@@ -323,6 +392,8 @@ def generate_test_function(
 
     if response_schema:
         schema_text = format_python_literal(response_schema)
+        lines.append('    content_type = response.headers.get("Content-Type", "")')
+        lines.append('    assert "application/json" in content_type')
         lines.append("    data = response.json()")
         lines.append(f"    schema = {schema_text}")
         lines.append("    jsonschema.validate(data, schema)")
@@ -350,7 +421,7 @@ def generate_negative_test_functions(
         return []
 
     safe_name = sanitize_path_for_name(path)
-    request_path = replace_path_params(path)
+    request_path = replace_path_params(path, operation, spec)
     error_status_code = get_error_status_code(operation)
     test_functions = []
 

@@ -1,11 +1,14 @@
 from openapi_test_generator.generator import (
     build_headers_code,
     build_request_call,
+    dereference_schema,
     format_python_literal,
     generate_invalid_enum_payloads,
     generate_missing_required_payloads,
     generate_sample_value,
     generate_test_file,
+    generate_path_param_value,
+    get_path_parameters,
     get_error_status_code,
     get_json_request_body,
     get_response_schema,
@@ -73,11 +76,44 @@ def test_sanitize_path_for_name_returns_root_for_slash() -> None:
 
 
 def test_replace_path_params_replaces_param_with_sample_value() -> None:
-    assert replace_path_params("/users/{id}") == "/users/1"
+    spec = {}
+    operation = {
+        "parameters": [
+            {
+                "name": "id",
+                "in": "path",
+                "required": True,
+                "schema": {"type": "integer", "minimum": 1},
+            }
+        ]
+    }
+
+    assert replace_path_params("/users/{id}", operation, spec) == "/users/1"
 
 
-def test_replace_path_params_replaces_multiple_params() -> None:
-    assert replace_path_params("/teams/{team_id}/users/{id}") == "/teams/1/users/1"
+def test_replace_path_params_replaces_multiple_integer_params() -> None:
+    spec = {}
+    operation = {
+        "parameters": [
+            {
+                "name": "team_id",
+                "in": "path",
+                "required": True,
+                "schema": {"type": "integer", "minimum": 1},
+            },
+            {
+                "name": "id",
+                "in": "path",
+                "required": True,
+                "schema": {"type": "integer", "minimum": 1},
+            },
+        ]
+    }
+
+    assert (
+        replace_path_params("/teams/{team_id}/users/{id}", operation, spec)
+        == "/teams/1/users/1"
+    )
 
 
 def test_resolve_ref_returns_schema_from_components() -> None:
@@ -179,7 +215,17 @@ def test_generate_test_file_includes_generated_post_test() -> None:
 
 def test_generate_test_file_replaces_path_params_in_output() -> None:
     spec = make_sample_spec()
-    endpoints = [("DELETE", "/users/{id}", {})]
+    operation = {
+        "parameters": [
+            {
+                "name": "id",
+                "in": "path",
+                "required": True,
+                "schema": {"type": "integer", "minimum": 1},
+            }
+        ]
+    }
+    endpoints = [("DELETE", "/users/{id}", operation)]
 
     output = generate_test_file(endpoints, spec)
 
@@ -532,3 +578,148 @@ def test_generate_test_file_includes_auth_header_setup_for_api_key() -> None:
 
     assert '    "X-API-Key": os.environ["OPENAPI_TESTGEN_API_KEY"]' in output
     assert 'headers=HEADERS' in output
+
+
+def test_dereference_schema_resolves_nested_refs() -> None:
+    spec = {
+        "components": {
+            "schemas": {
+                "User": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "integer"},
+                        "email": {"type": "string"},
+                    },
+                    "required": ["id", "email"],
+                },
+                "UserResponse": {
+                    "type": "object",
+                    "properties": {
+                        "data": {"$ref": "#/components/schemas/User"},
+                    },
+                    "required": ["data"],
+                },
+            }
+        }
+    }
+
+    schema = {"$ref": "#/components/schemas/UserResponse"}
+
+    result = dereference_schema(schema, spec)
+
+    assert result == {
+        "type": "object",
+        "properties": {
+            "data": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "integer"},
+                    "email": {"type": "string"},
+                },
+                "required": ["id", "email"],
+            }
+        },
+        "required": ["data"],
+    }
+
+
+def test_replace_path_params_replaces_integer_param_with_sample_value() -> None:
+    spec = {}
+    operation = {
+        "parameters": [
+            {
+                "name": "id",
+                "in": "path",
+                "required": True,
+                "schema": {"type": "integer", "minimum": 1},
+            }
+        ]
+    }
+
+    assert replace_path_params("/users/{id}", operation, spec) == "/users/1"
+
+
+def test_replace_path_params_uses_string_placeholder_for_slug() -> None:
+    spec = {}
+    operation = {
+        "parameters": [
+            {
+                "name": "slug",
+                "in": "path",
+                "required": True,
+                "schema": {"type": "string"},
+            }
+        ]
+    }
+
+    assert (
+        replace_path_params("/collections/{slug}", operation, spec)
+        == "/collections/example-slug"
+    )
+
+
+def test_replace_path_params_uses_parameter_example_when_present() -> None:
+    spec = {}
+    operation = {
+        "parameters": [
+            {
+                "name": "slug",
+                "in": "path",
+                "required": True,
+                "example": "users",
+                "schema": {"type": "string"},
+            }
+        ]
+    }
+
+    assert replace_path_params("/collections/{slug}", operation, spec) == "/collections/users"
+
+
+def test_generate_path_param_value_uses_schema_example_when_present() -> None:
+    spec = {}
+    parameter = {
+        "name": "recordId",
+        "in": "path",
+        "required": True,
+        "schema": {
+            "type": "string",
+            "example": "abc123",
+        },
+    }
+
+    assert generate_path_param_value(parameter, spec) == "abc123"
+
+
+def test_generate_test_file_checks_content_type_before_json_validation() -> None:
+    spec = {
+        "paths": {
+            "/users": {
+                "get": {
+                    "responses": {
+                        "200": {
+                            "description": "Successful response",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {"type": "integer"}
+                                        },
+                                        "required": ["id"],
+                                    }
+                                }
+                            },
+                        }
+                    },
+                }
+            }
+        }
+    }
+
+    endpoints = [("GET", "/users", spec["paths"]["/users"]["get"])]
+
+    output = generate_test_file(endpoints, spec)
+
+    assert 'content_type = response.headers.get("Content-Type", "")' in output
+    assert 'assert "application/json" in content_type' in output
+    assert "data = response.json()" in output
