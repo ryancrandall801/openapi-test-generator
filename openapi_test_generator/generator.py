@@ -116,6 +116,16 @@ def replace_path_params(path: str, operation: dict, spec: dict) -> str:
     return result
 
 
+def get_query_parameters(operation: dict) -> list[dict]:
+    """Return query parameters defined on an operation."""
+    parameters = operation.get("parameters", [])
+    return [
+        parameter
+        for parameter in parameters
+        if parameter.get("in") == "query"
+    ]
+
+
 def build_headers_code(
     auth_header_name: str | None,
     auth_token_env: str | None,
@@ -143,10 +153,14 @@ def build_request_call(
     method_lower: str,
     request_path: str,
     request_body: object | None,
+    query_params: dict | None,
     include_headers: bool,
 ) -> str:
     """Build a requests call line for a generated test."""
     args = [f'f"{{BASE_URL}}{request_path}"']
+
+    if query_params:
+        args.append(f"params={query_params}")
 
     if request_body is not None and method_lower in {"post", "put", "patch"}:
         args.append("json=payload")
@@ -361,6 +375,7 @@ def generate_test_function(
     request_path = replace_path_params(path, operation, spec)
 
     request_body = get_json_request_body(operation, spec)
+    query_params = generate_query_params(operation, spec)
     response_schema = get_response_schema(operation, spec)
     success_status_code = get_success_status_code(operation)
 
@@ -373,6 +388,7 @@ def generate_test_function(
             method_lower,
             request_path,
             request_body,
+            query_params,
             include_headers,
         )
         lines.append(f"    {request_call}")
@@ -381,6 +397,7 @@ def generate_test_function(
             method_lower,
             request_path,
             None,
+            query_params,
             include_headers,
         )
         lines.append(f"    {request_call}")
@@ -436,6 +453,7 @@ def generate_negative_test_functions(
             method_lower,
             request_path,
             payload,
+            None,
             include_headers,
         )
         test_functions.append(
@@ -452,6 +470,7 @@ def generate_negative_test_functions(
             method_lower,
             request_path,
             payload,
+            None,
             include_headers,
         )
         test_functions.append(
@@ -530,6 +549,42 @@ def generate_test_file(
             lines.append("")
 
     return "\n".join(lines).rstrip() + "\n"
+
+
+def generate_query_params(operation: dict, spec: dict) -> dict:
+    """Generate query parameters for an operation."""
+    params = {}
+
+    for parameter in get_query_parameters(operation):
+        name = parameter.get("name")
+        if not name:
+            continue
+
+        schema = parameter.get("schema", {})
+
+        if "$ref" in schema:
+            schema = resolve_ref(schema["$ref"], spec)
+
+        if "example" in parameter:
+            params[name] = parameter["example"]
+            continue
+
+        if "example" in schema:
+            params[name] = schema["example"]
+            continue
+
+        schema_type = schema.get("type")
+
+        if schema_type == "integer":
+            params[name] = 1
+        elif schema_type == "number":
+            params[name] = 1
+        elif schema_type == "boolean":
+            params[name] = True
+        else:
+            params[name] = "example"
+
+    return params
 
 
 def write_test_file(output_path: Path, content: str) -> None:

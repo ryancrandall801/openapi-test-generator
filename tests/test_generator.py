@@ -539,6 +539,7 @@ def test_build_request_call_includes_headers_and_payload() -> None:
         "post",
         "/users",
         {"name": "Ryan"},
+        None,
         True,
     )
 
@@ -723,3 +724,15 @@ def test_generate_test_file_checks_content_type_before_json_validation() -> None
     assert 'content_type = response.headers.get("Content-Type", "")' in output
     assert 'assert "application/json" in content_type' in output
     assert "data = response.json()" in output
+
+
+def test_build_request_call_includes_query_params() -> None:
+    result = build_request_call(
+        "get",
+        "/users",
+        None,
+        {"page": 1},
+        True,
+    )
+
+    assert result == 'response = requests.get(f"{BASE_URL}/users", params={\'page\': 1}, headers=HEADERS)'
