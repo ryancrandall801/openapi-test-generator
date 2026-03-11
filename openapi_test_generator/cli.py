@@ -12,7 +12,7 @@ def main() -> None:
 
     parser.add_argument(
         "spec",
-        help="Path to the OpenAPI spec file (.json, .yaml, or .yml)."
+        help="Path or URL to the OpenAPI spec (.json, .yaml, or .yml)."
     )
 
     parser.add_argument(
@@ -31,6 +31,11 @@ def main() -> None:
     parser.add_argument(
         "--methods",
         help="Comma-separated HTTP methods to generate (for example: GET or GET,POST)"
+    )
+
+    parser.add_argument(
+        "--tags",
+        help="Comma-separated OpenAPI tags to generate (for example: Legacy or Legacy,Authentication)"
     )
 
     parser.add_argument(
@@ -67,9 +72,21 @@ def main() -> None:
         if invalid_methods:
             parser.error(f"Unsupported methods: {', '.join(sorted(invalid_methods))}")
 
-    file_path = Path(args.spec)
-    spec = load_openapi_spec(file_path)
-    endpoints = extract_endpoints(spec, selected_methods=selected_methods)
+    selected_tags = None
+    if args.tags:
+        selected_tags = {
+            tag.strip()
+            for tag in args.tags.split(",")
+            if tag.strip()
+        }
+
+    spec_source = args.spec
+    spec = load_openapi_spec(spec_source)
+    endpoints = extract_endpoints(
+        spec,
+        selected_methods=selected_methods,
+        selected_tags=selected_tags,
+    )
 
     if not endpoints:
         print("No endpoints found.")
