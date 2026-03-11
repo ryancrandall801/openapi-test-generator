@@ -39,6 +39,14 @@ That's it — your OpenAPI spec is now a runnable pytest suite.
 
 ---
 
+# Demo
+
+Generate API tests from an OpenAPI spec in seconds.
+
+![Demo](docs/demo.gif)
+
+---
+
 # Example (Real API)
 
 Example using the public **ReqRes API**.
