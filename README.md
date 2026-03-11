@@ -1,107 +1,121 @@
 # OpenAPI Test Generator
 
-Generate **pytest API tests automatically from OpenAPI specifications**.
+Turn your **OpenAPI specification into a runnable pytest suite instantly.**
 
-This CLI tool reads an OpenAPI spec and produces starter API tests including:
+Generate **real API tests automatically** from an OpenAPI spec.
 
-- happy-path tests
-- negative tests
-- schema-based payload generation
-- response validation
+The generator reads an OpenAPI spec (JSON or YAML) and produces a pytest test file that:
 
-The goal is to reduce repetitive API test setup and provide a strong starting point for automated testing.
+- Calls real endpoints
+- Generates request payloads
+- Validates response status codes
+- Validates response schemas
+- Generates negative tests (missing fields / invalid enums)
+
+---
+
+# 10-Second Quickstart
+
+Generate a pytest API test suite from an OpenAPI spec in **two commands**.
+
+```bash
+pip install -e .
+openapi-testgen openapi.json
+```
+
+This generates:
+
+```
+generated/generated_api_tests.py
+```
+
+Run the tests:
+
+```bash
+python -m pytest generated/generated_api_tests.py -vv
+```
+
+That's it — your OpenAPI spec is now a runnable pytest suite.
+
+---
+
+# Example (Real API)
+
+Example using the public **ReqRes API**.
+
+```bash
+openapi-testgen reqres_openapi.json \
+  --base-url https://reqres.in \
+  --auth-header-name x-api-key \
+  --auth-token-env REQRES_API_KEY \
+  --methods GET \
+  --tags Legacy
+```
+
+Generated tests:
+
+```
+test_get_api_users
+test_get_api_users_id
+test_get_api_unknown
+test_get_api_unknown_id
+```
+
+Run them:
+
+```bash
+python -m pytest generated/generated_api_tests.py -vv
+```
+
+Result:
+
+```
+4 passed in 1.55s
+```
+
+These tests made **real HTTP calls** and validated the responses against the API schema.
 
 ---
 
 # Features
 
-## OpenAPI Support
+✔ Generate pytest tests from OpenAPI specs  
+✔ Supports JSON and YAML specs  
+✔ Supports **local files or spec URLs**  
+✔ Generates **request payloads automatically**  
+✔ Validates responses with **jsonschema**  
+✔ Generates **negative tests automatically**  
+✔ Supports **auth headers**  
+✔ Filter by **HTTP methods**  
+✔ Filter by **OpenAPI tags**
 
-- Works with **JSON and YAML** OpenAPI specs
-- Automatically discovers API endpoints
-- Supports common HTTP methods:
-  - GET
-  - POST
-  - PUT
-  - PATCH
-  - DELETE
+---
 
-## Smart Payload Generation
+# Installation
 
-Request payloads are generated from OpenAPI schemas with support for:
+Clone the repository and install locally:
 
-- `example` values
-- `default` values
-- required fields
-- enum fields
-- `$ref` schema resolution
+```bash
+pip install -e .
+```
 
-Example generated payload:
+The CLI command becomes available:
 
-```python
-payload = {'name': 'Ryan', 'email': 'ryan@example.com', 'role': 'admin'}
+```bash
+openapi-testgen
 ```
 
 ---
 
-## Automatic Negative Tests
+# Usage
 
-The generator automatically creates tests for common invalid scenarios:
-
-- missing required fields
-- invalid enum values
-
-Example:
-
-```python
-def test_post_users_missing_name():
-    payload = {'email': 'ryan@example.com', 'role': 'admin'}
-    response = requests.post(f"{BASE_URL}/users", json=payload)
-    assert response.status_code == 400
-```
-
----
-
-## Response Validation
-
-Generated tests verify:
-
-- expected response codes from the OpenAPI spec
-- response JSON schema using `jsonschema`
-
-Example:
-
-```python
-assert response.status_code == 201
-
-data = response.json()
-jsonschema.validate(data, schema)
-```
-
----
-
-## CLI Options
-
-Generate tests from an OpenAPI spec:
+## Generate tests from a local spec
 
 ```bash
-openapi-testgen openapi.yaml
+openapi-testgen openapi.json
 ```
 
-Optional arguments:
-
-```bash
---output <file>
---base-url <url>
-```
-
-Example:
-
-```bash
-openapi-testgen openapi.yaml --base-url https://api.dev.com
-```
-
-Default output file:
+This creates:
 
 ```
 generated/generated_api_tests.py
@@ -109,124 +123,100 @@ generated/generated_api_tests.py
 
 ---
 
-# Example
+## Generate tests from an OpenAPI URL
 
-## Input (OpenAPI)
-
-```yaml
-paths:
-  /users:
-    post:
-      summary: Create user
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UserCreate"
-      responses:
-        "201":
-          description: User created
-        "400":
-          description: Invalid request
-
-components:
-  schemas:
-    UserCreate:
-      type: object
-      required: ["name", "email"]
-      properties:
-        name:
-          type: string
-          example: Ryan
-        email:
-          type: string
-          example: ryan@example.com
-        role:
-          type: string
-          enum: ["admin", "user"]
-          example: admin
+```bash
+openapi-testgen https://api.example.com/openapi.json
 ```
 
 ---
 
-## Generated Tests
-
-Running:
+## Specify a base URL
 
 ```bash
-openapi-testgen openapi.yaml --base-url https://api.dev.com
+openapi-testgen openapi.json --base-url https://api.example.com
 ```
 
-Produces:
+---
 
-```
-Generated generated/generated_api_tests.py with 4 test(s).
+## Authentication headers
+
+For APIs requiring authentication:
+
+```bash
+openapi-testgen openapi.json \
+  --auth-header-name Authorization \
+  --auth-token-env API_TOKEN \
+  --auth-scheme Bearer
 ```
 
-Generated file:
+Generated tests will include:
 
 ```python
-import requests
-import jsonschema
-
-BASE_URL = "https://api.dev.com"
-
-
-def test_post_users():
-    payload = {'name': 'Ryan', 'email': 'ryan@example.com', 'role': 'admin'}
-    response = requests.post(f"{BASE_URL}/users", json=payload)
-    assert response.status_code == 201
-
-
-def test_post_users_missing_name():
-    payload = {'email': 'ryan@example.com', 'role': 'admin'}
-    response = requests.post(f"{BASE_URL}/users", json=payload)
-    assert response.status_code == 400
-
-
-def test_post_users_missing_email():
-    payload = {'name': 'Ryan', 'role': 'admin'}
-    response = requests.post(f"{BASE_URL}/users", json=payload)
-    assert response.status_code == 400
-
-
-def test_post_users_invalid_role_enum():
-    payload = {'name': 'Ryan', 'email': 'ryan@example.com', 'role': 'invalid_enum_value'}
-    response = requests.post(f"{BASE_URL}/users", json=payload)
-    assert response.status_code == 400
+HEADERS = {
+    "Authorization": f"Bearer {os.environ['API_TOKEN']}"
+}
 ```
 
 ---
 
-# Installation
+## Method filtering
 
-Clone the repository:
+Generate tests only for certain HTTP methods.
 
 ```bash
-git clone https://github.com/yourusername/openapi-test-generator.git
-cd openapi-test-generator
+openapi-testgen openapi.json --methods GET
 ```
 
-Install dependencies:
+or:
 
 ```bash
-pip install -r requirements.txt
+openapi-testgen openapi.json --methods GET,POST
 ```
 
 ---
 
-# Running Tests
+## Tag filtering
 
-Run the unit tests:
+Generate tests only for endpoints with specific OpenAPI tags.
 
 ```bash
-python -m pytest
+openapi-testgen openapi.json --tags Users
 ```
 
-Example output:
+or multiple tags:
 
+```bash
+openapi-testgen openapi.json --tags Users,Auth
 ```
-25 passed in 0.03s
+
+---
+
+# Running the Generated Tests
+
+```bash
+python -m pytest generated/generated_api_tests.py -vv
+```
+
+The generated tests will:
+
+- call the API
+- assert status codes
+- validate response schemas
+- run negative tests where applicable
+
+---
+
+# Example Generated Test
+
+```python
+def test_get_api_users():
+    response = requests.get(f"{BASE_URL}/api/users", headers=HEADERS)
+    assert response.status_code == 200
+
+    data = response.json()
+    schema = {...}
+    jsonschema.validate(data, schema)
 ```
 
 ---
@@ -234,31 +224,47 @@ Example output:
 # Project Structure
 
 ```
-openapi-test-generator/
-│
-├── main.py            # CLI entry point
-├── parser.py          # OpenAPI loading and endpoint extraction
-├── generator.py       # Test generation logic
-│
-├── tests/
-│   └── test_generator.py
-│
-├── requirements.txt
-└── README.md
+openapi_test_generator/
+    cli.py
+    parser.py
+    generator.py
+
+tests/
+    test_parser.py
+    test_generator.py
+
+generated/
+    generated_api_tests.py
 ```
 
 ---
 
-# Future Improvements
+# Roadmap
 
-Possible future enhancements:
+Potential future improvements:
 
-- authentication support (Bearer tokens / API keys)
-- response validation for additional response codes
-- nested schema negative tests
-- generate tests for all documented response codes
-- package as an installable CLI tool
-- CI integration
+- Query parameter generation
+- Automatic auth detection from OpenAPI security schemes
+- Better path parameter examples
+- Response body sampling
+- CI integration examples
+- Web interface for generating tests
+
+---
+
+# Why This Tool Exists
+
+Writing API tests manually is repetitive.
+
+OpenAPI already describes:
+
+- endpoints
+- schemas
+- parameters
+- request bodies
+- responses
+
+This tool converts that specification into **working tests automatically**.
 
 ---
 
