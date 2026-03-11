@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openapi-test-generator"
+version = "0.1.0"
+description = "Generate pytest API tests automatically from OpenAPI specifications"
+readme = "README.md"
+requires-python = ">=3.9"
+
+dependencies = [
+    "requests",
+    "jsonschema",
+    "PyYAML"
+]
+
+[project.scripts]
+openapi-testgen = "main:main"
+
+[tool.setuptools]
+py-modules = ["main", "parser", "generator"]
