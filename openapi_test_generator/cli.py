@@ -5,6 +5,13 @@ from openapi_test_generator.generator import generate_test_file, write_test_file
 from openapi_test_generator.parser import extract_endpoints, load_openapi_spec
 
 
+import argparse
+from pathlib import Path
+
+from openapi_test_generator.generator import generate_test_file, write_test_file
+from openapi_test_generator.parser import extract_endpoints, load_openapi_spec
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Generate pytest API tests from an OpenAPI spec."
@@ -28,7 +35,26 @@ def main() -> None:
         help="Base URL used in the generated tests (default: http://localhost:8000)"
     )
 
+    parser.add_argument(
+        "--auth-header-name",
+        help="Header name for auth in generated requests (for example: Authorization or X-API-Key)"
+    )
+
+    parser.add_argument(
+        "--auth-token-env",
+        help="Environment variable name containing the auth token or API key"
+    )
+
+    parser.add_argument(
+        "--auth-scheme",
+        help="Optional auth scheme prefix (for example: Bearer)"
+    )
+
     args = parser.parse_args()
+
+    auth_fields = [args.auth_header_name, args.auth_token_env]
+    if any(auth_fields) and not all(auth_fields):
+        parser.error("--auth-header-name and --auth-token-env must be provided together")
 
     file_path = Path(args.spec)
     spec = load_openapi_spec(file_path)
@@ -38,7 +64,15 @@ def main() -> None:
         print("No endpoints found.")
         return
 
-    output = generate_test_file(endpoints, spec, args.base_url)
+    output = generate_test_file(
+        endpoints,
+        spec,
+        args.base_url,
+        auth_header_name=args.auth_header_name,
+        auth_token_env=args.auth_token_env,
+        auth_scheme=args.auth_scheme,
+    )
+
     output_path = Path(args.output)
     write_test_file(output_path, output)
 

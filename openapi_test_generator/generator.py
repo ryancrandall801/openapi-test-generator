@@ -1,6 +1,47 @@
 from pathlib import Path
 
 
+def build_headers_code(
+    auth_header_name: str | None,
+    auth_token_env: str | None,
+    auth_scheme: str | None,
+) -> str | None:
+    """Return Python source code for the HEADERS constant, if auth is configured."""
+    if not auth_header_name or not auth_token_env:
+        return None
+
+    if auth_scheme:
+        return (
+            "HEADERS = {\n"
+            f'    "{auth_header_name}": f"{auth_scheme} {{os.environ[\'{auth_token_env}\']}}"\n'
+            "}"
+        )
+
+    return (
+        "HEADERS = {\n"
+        f'    "{auth_header_name}": os.environ["{auth_token_env}"]\n'
+        "}"
+    )
+
+
+def build_request_call(
+    method_lower: str,
+    request_path: str,
+    request_body: object | None,
+    include_headers: bool,
+) -> str:
+    """Build a requests call line for a generated test."""
+    args = [f'f"{{BASE_URL}}{request_path}"']
+
+    if request_body is not None and method_lower in {"post", "put", "patch"}:
+        args.append("json=payload")
+
+    if include_headers:
+        args.append("headers=HEADERS")
+
+    return f"response = requests.{method_lower}({', '.join(args)})"
+
+
 def sanitize_path_for_name(path: str) -> str:
     """Convert an API path into something safe for a Python test name."""
     cleaned = path.strip("/")
@@ -238,7 +279,13 @@ def format_python_literal(value: object) -> str:
     return repr(value)
 
 
-def generate_test_function(method: str, path: str, operation: dict, spec: dict) -> str:
+def generate_test_function(
+    method: str,
+    path: str,
+    operation: dict,
+    spec: dict,
+    include_headers: bool = False,
+) -> str:
     """Generate one starter pytest test function."""
     safe_name = sanitize_path_for_name(path)
     method_lower = method.lower()
@@ -253,13 +300,21 @@ def generate_test_function(method: str, path: str, operation: dict, spec: dict) 
     if request_body is not None and method_lower in {"post", "put", "patch"}:
         body_text = format_python_literal(request_body)
         lines.append(f"    payload = {body_text}")
-        lines.append(
-            f'    response = requests.{method_lower}(f"{{BASE_URL}}{request_path}", json=payload)'
+        request_call = build_request_call(
+            method_lower,
+            request_path,
+            request_body,
+            include_headers,
         )
+        lines.append(f"    {request_call}")
     else:
-        lines.append(
-            f'    response = requests.{method_lower}(f"{{BASE_URL}}{request_path}")'
+        request_call = build_request_call(
+            method_lower,
+            request_path,
+            None,
+            include_headers,
         )
+        lines.append(f"    {request_call}")
 
     if success_status_code is not None:
         lines.append(f"    assert response.status_code == {success_status_code}")
@@ -277,7 +332,13 @@ def generate_test_function(method: str, path: str, operation: dict, spec: dict) 
     return "\n".join(lines)
 
 
-def generate_negative_test_functions(method: str, path: str, operation: dict, spec: dict) -> list[str]:
+def generate_negative_test_functions(
+    method: str,
+    path: str,
+    operation: dict,
+    spec: dict,
+    include_headers: bool = False,
+) -> list[str]:
     """Generate negative tests for missing required fields and invalid enum values."""
     method_lower = method.lower()
 
@@ -300,20 +361,32 @@ def generate_negative_test_functions(method: str, path: str, operation: dict, sp
 
     for field_name, payload in generate_missing_required_payloads(schema, spec):
         body_text = format_python_literal(payload)
+        request_call = build_request_call(
+            method_lower,
+            request_path,
+            payload,
+            include_headers,
+        )
         test_functions.append(
             f'''def test_{method_lower}_{safe_name}_missing_{field_name}():
     payload = {body_text}
-    response = requests.{method_lower}(f"{{BASE_URL}}{request_path}", json=payload)
+    {request_call}
     {error_assertion}
 '''
         )
 
     for field_name, payload in generate_invalid_enum_payloads(schema, spec):
         body_text = format_python_literal(payload)
+        request_call = build_request_call(
+            method_lower,
+            request_path,
+            payload,
+            include_headers,
+        )
         test_functions.append(
             f'''def test_{method_lower}_{safe_name}_invalid_{field_name}_enum():
     payload = {body_text}
-    response = requests.{method_lower}(f"{{BASE_URL}}{request_path}", json=payload)
+    {request_call}
     {error_assertion}
 '''
         )
@@ -325,22 +398,62 @@ def generate_test_file(
     endpoints: list[tuple[str, str, dict]],
     spec: dict,
     base_url: str = "http://localhost:8000",
+    auth_header_name: str | None = None,
+    auth_token_env: str | None = None,
+    auth_scheme: str | None = None,
 ) -> str:
     """Generate the full contents of the output test file."""
+    headers_code = build_headers_code(
+        auth_header_name,
+        auth_token_env,
+        auth_scheme,
+    )
+    include_headers = headers_code is not None
+
     lines = [
         "import requests",
         "import jsonschema",
-        "",
-        f'BASE_URL = "{base_url}"',
-        "",
-        "",
     ]
 
+    if include_headers:
+        lines.append("import os")
+
+    lines.extend([
+        "",
+        f'BASE_URL = "{base_url}"',
+    ])
+
+    if include_headers:
+        lines.extend([
+            "",
+            "# Set this environment variable before running the generated tests.",
+            headers_code,
+        ])
+
+    lines.extend([
+        "",
+        "",
+    ])
+
     for method, path, operation in endpoints:
-        lines.append(generate_test_function(method, path, operation, spec))
+        lines.append(
+            generate_test_function(
+                method,
+                path,
+                operation,
+                spec,
+                include_headers=include_headers,
+            )
+        )
         lines.append("")
 
-        negative_tests = generate_negative_test_functions(method, path, operation, spec)
+        negative_tests = generate_negative_test_functions(
+            method,
+            path,
+            operation,
+            spec,
+            include_headers=include_headers,
+        )
         for test_function in negative_tests:
             lines.append(test_function)
             lines.append("")

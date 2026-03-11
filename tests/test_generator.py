@@ -1,4 +1,6 @@
 from openapi_test_generator.generator import (
+    build_headers_code,
+    build_request_call,
     format_python_literal,
     generate_invalid_enum_payloads,
     generate_missing_required_payloads,
@@ -450,3 +452,83 @@ def test_write_test_file_creates_parent_directory(tmp_path) -> None:
 
     assert output_path.exists()
     assert output_path.read_text(encoding="utf-8") == content
+
+
+def test_build_headers_code_returns_none_when_auth_not_configured() -> None:
+    result = build_headers_code(None, None, None)
+
+    assert result is None
+
+
+def test_build_headers_code_generates_bearer_header() -> None:
+    result = build_headers_code(
+        "Authorization",
+        "OPENAPI_TESTGEN_TOKEN",
+        "Bearer",
+    )
+
+    assert result == (
+        "HEADERS = {\n"
+        '    "Authorization": f"Bearer {os.environ[\'OPENAPI_TESTGEN_TOKEN\']}"\n'
+        "}"
+    )
+
+
+def test_build_headers_code_generates_raw_header() -> None:
+    result = build_headers_code(
+        "X-API-Key",
+        "OPENAPI_TESTGEN_API_KEY",
+        None,
+    )
+
+    assert result == (
+        "HEADERS = {\n"
+        '    "X-API-Key": os.environ["OPENAPI_TESTGEN_API_KEY"]\n'
+        "}"
+    )
+
+
+def test_build_request_call_includes_headers_and_payload() -> None:
+    result = build_request_call(
+        "post",
+        "/users",
+        {"name": "Ryan"},
+        True,
+    )
+
+    assert result == 'response = requests.post(f"{BASE_URL}/users", json=payload, headers=HEADERS)'
+
+
+def test_generate_test_file_includes_auth_header_setup_for_bearer_token() -> None:
+    spec = make_sample_spec()
+    endpoints = [("POST", "/users", spec["paths"]["/users"]["post"])]
+
+    output = generate_test_file(
+        endpoints,
+        spec,
+        "https://api.dev.com",
+        auth_header_name="Authorization",
+        auth_token_env="OPENAPI_TESTGEN_TOKEN",
+        auth_scheme="Bearer",
+    )
+
+    assert "import os" in output
+    assert 'BASE_URL = "https://api.dev.com"' in output
+    assert 'HEADERS = {' in output
+    assert '    "Authorization": f"Bearer {os.environ[\'OPENAPI_TESTGEN_TOKEN\']}"' in output
+    assert 'headers=HEADERS' in output
+
+
+def test_generate_test_file_includes_auth_header_setup_for_api_key() -> None:
+    spec = make_sample_spec()
+    endpoints = [("POST", "/users", spec["paths"]["/users"]["post"])]
+
+    output = generate_test_file(
+        endpoints,
+        spec,
+        auth_header_name="X-API-Key",
+        auth_token_env="OPENAPI_TESTGEN_API_KEY",
+    )
+
+    assert '    "X-API-Key": os.environ["OPENAPI_TESTGEN_API_KEY"]' in output
+    assert 'headers=HEADERS' in output
