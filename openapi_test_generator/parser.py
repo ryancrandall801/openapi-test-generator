@@ -45,7 +45,10 @@ def load_openapi_spec(file_path: Path) -> dict:
         sys.exit(1)
 
 
-def extract_endpoints(spec: dict) -> list[tuple[str, str, dict]]:
+def extract_endpoints(
+    spec: dict,
+    selected_methods: set[str] | None = None,
+) -> list[tuple[str, str, dict]]:
     """Return a list of (METHOD, PATH, OPERATION) tuples from the OpenAPI spec."""
     endpoints = []
     paths = spec.get("paths", {})

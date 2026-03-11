@@ -5,13 +5,6 @@ from openapi_test_generator.generator import generate_test_file, write_test_file
 from openapi_test_generator.parser import extract_endpoints, load_openapi_spec
 
 
-import argparse
-from pathlib import Path
-
-from openapi_test_generator.generator import generate_test_file, write_test_file
-from openapi_test_generator.parser import extract_endpoints, load_openapi_spec
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Generate pytest API tests from an OpenAPI spec."
@@ -36,6 +29,11 @@ def main() -> None:
     )
 
     parser.add_argument(
+        "--methods",
+        help="Comma-separated HTTP methods to generate (for example: GET or GET,POST)"
+    )
+
+    parser.add_argument(
         "--auth-header-name",
         help="Header name for auth in generated requests (for example: Authorization or X-API-Key)"
     )
@@ -56,9 +54,22 @@ def main() -> None:
     if any(auth_fields) and not all(auth_fields):
         parser.error("--auth-header-name and --auth-token-env must be provided together")
 
+    selected_methods = None
+    if args.methods:
+        selected_methods = {
+            method.strip().upper()
+            for method in args.methods.split(",")
+            if method.strip()
+        }
+
+        valid_methods = {"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"}
+        invalid_methods = selected_methods - valid_methods
+        if invalid_methods:
+            parser.error(f"Unsupported methods: {', '.join(sorted(invalid_methods))}")
+
     file_path = Path(args.spec)
     spec = load_openapi_spec(file_path)
-    endpoints = extract_endpoints(spec)
+    endpoints = extract_endpoints(spec, selected_methods=selected_methods)
 
     if not endpoints:
         print("No endpoints found.")
