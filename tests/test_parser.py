@@ -162,3 +162,68 @@ def test_extract_endpoints_filters_by_multiple_tags() -> None:
         ("GET", "/users", {"summary": "List users", "tags": ["Users"], "parameters": []}),
         ("POST", "/users", {"summary": "Create user", "tags": ["Admin"], "parameters": []}),
     ]
+
+
+def test_extract_endpoints_filters_by_single_tag() -> None:
+    spec = {
+        "paths": {
+            "/users": {
+                "get": {
+                    "tags": ["Users"]
+                }
+            },
+            "/login": {
+                "post": {
+                    "tags": ["Auth"]
+                }
+            },
+        }
+    }
+
+    endpoints = extract_endpoints(spec, selected_tags={"Users"})
+
+    assert endpoints == [
+        ("GET", "/users", {"tags": ["Users"], "parameters": []})
+    ]
+
+
+def test_extract_endpoints_filters_by_multiple_tags() -> None:
+    spec = {
+        "paths": {
+            "/users": {
+                "get": {
+                    "tags": ["Users"]
+                }
+            },
+            "/login": {
+                "post": {
+                    "tags": ["Auth"]
+                }
+            },
+            "/health": {
+                "get": {
+                    "tags": ["System"]
+                }
+            },
+        }
+    }
+
+    endpoints = extract_endpoints(spec, selected_tags={"Users", "Auth"})
+
+    assert len(endpoints) == 2
+
+
+def test_extract_endpoints_returns_no_matches_for_unknown_tag() -> None:
+    spec = {
+        "paths": {
+            "/users": {
+                "get": {
+                    "tags": ["Users"]
+                }
+            }
+        }
+    }
+
+    endpoints = extract_endpoints(spec, selected_tags={"DoesNotExist"})
+
+    assert endpoints == []
