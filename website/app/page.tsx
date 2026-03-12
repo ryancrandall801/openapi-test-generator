@@ -135,6 +135,8 @@ export default function OpenApiTestGeneratorLandingPage() {
               </p>
             </div>
 
+            <div className="flex flex-col gap-2">
+
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() =>
@@ -156,6 +158,12 @@ export default function OpenApiTestGeneratorLandingPage() {
                 GitHub
               </button>
             </div>
+
+            <p className="text-xs text-slate-500">
+              Try these example APIs or paste your own OpenAPI spec.
+            </p>
+
+          </div>
           </div>
 
           <div className="mt-6 space-y-4">
