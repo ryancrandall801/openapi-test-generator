@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 export default function OpenApiTestGeneratorLandingPage() {
   const [specUrl, setSpecUrl] = useState(
@@ -253,11 +255,28 @@ export default function OpenApiTestGeneratorLandingPage() {
               Generated preview
             </div>
 
-            <pre className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950 p-4 text-sm leading-6 text-slate-200">
-              <code>
+            <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950">
+              <SyntaxHighlighter
+                language="python"
+                style={oneDark}
+                showLineNumbers
+                customStyle={{
+                  margin: 0,
+                  padding: "1rem",
+                  background: "transparent",
+                  fontSize: "0.875rem",
+                  lineHeight: "1.6",
+                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+                }}
+                codeTagProps={{
+                  style: {
+                    background: "transparent"
+                  }
+                }}
+              >
                 {generatedCode || "# Generated tests will appear here..."}
-              </code>
-            </pre>
+              </SyntaxHighlighter>
+            </div>
           </div>
         </section>
 
