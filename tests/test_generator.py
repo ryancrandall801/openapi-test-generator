@@ -316,6 +316,14 @@ def test_generate_test_file_uses_example_and_default_values() -> None:
         },
     }
 
+    endpoints = [("POST", "/users", spec["paths"]["/users"]["post"])]
+
+    output = generate_test_file(endpoints, spec)
+
+    assert "def test_post_users():" in output
+    assert "payload = {'name': 'Ryan', 'age': 25}" in output
+    assert 'response = requests.post(f"{BASE_URL}/users", json=payload)' in output
+
 
 def test_generate_test_file_uses_custom_base_url() -> None:
     spec = make_sample_spec()
