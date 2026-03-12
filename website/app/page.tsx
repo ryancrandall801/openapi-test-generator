@@ -90,6 +90,14 @@ export default function OpenApiTestGeneratorLandingPage() {
     URL.revokeObjectURL(url);
   };
 
+  const copyCommand = async (command: string) => {
+    try {
+      await navigator.clipboard.writeText(command);
+    } catch {
+      setError("Failed to copy command.");
+    }
+  };
+
   const features = [
     {
       title: "Generate real pytest code",
@@ -302,6 +310,63 @@ export default function OpenApiTestGeneratorLandingPage() {
 
             </div>
           </div>
+          {generatedCode && (
+            <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
+              <h3 className="text-sm font-semibold text-slate-200">
+                Run these tests locally
+              </h3>
+
+              <ol className="mt-3 space-y-3 text-sm text-slate-300">
+                <li>
+                  <span className="font-medium text-slate-200">1.</span>{" "}
+                  Save the file as{" "}
+                  <code className="rounded bg-slate-950 px-1.5 py-0.5 text-sky-200">
+                    generated_api_tests.py
+                  </code>
+                </li>
+
+                <li>
+                  <span className="font-medium text-slate-200">2.</span>{" "}
+                  Install dependencies:
+
+                  <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950 p-3">
+                    <code className="text-sky-200 text-sm">
+                      pip install requests jsonschema pytest
+                    </code>
+
+                    <button
+                      onClick={() =>
+                        copyCommand("pip install requests jsonschema pytest")
+                      }
+                      className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1 text-xs text-slate-200 hover:bg-slate-800"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </li>
+
+                <li>
+                  <span className="font-medium text-slate-200">3.</span>{" "}
+                  Run:
+
+                  <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950 p-3">
+                    <code className="text-sky-200 text-sm">
+                      pytest generated_api_tests.py -vv
+                    </code>
+
+                    <button
+                      onClick={() =>
+                        copyCommand("pytest generated_api_tests.py -vv")
+                      }
+                      className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1 text-xs text-slate-200 hover:bg-slate-800"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </li>
+              </ol>
+            </div>
+          )}
         </section>
 
         {/* FEATURES */}
