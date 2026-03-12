@@ -76,11 +76,13 @@ export async function POST(request: NextRequest) {
     const outputPath = join(tempDir, "generated_api_tests.py");
 
     const args = [
-      "-m",
-      "openapi_test_generator.cli",
-      specUrl,
-      "--output",
-      outputPath,
+        "-m",
+        "openapi_test_generator.cli",
+        specUrl,
+        "--config",
+        join(tempDir, "no-config.yaml"),
+        "--output",
+        outputPath,
     ];
 
     if (methods) {

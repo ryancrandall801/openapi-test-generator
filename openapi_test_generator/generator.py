@@ -78,7 +78,11 @@ def generate_path_param_value(parameter: dict, spec: dict) -> str:
     if "default" in schema:
         return str(schema["default"])
 
+    if "enum" in schema and schema["enum"]:
+        return str(schema["enum"][0])
+
     param_name = parameter.get("name", "value")
+    param_name_lower = param_name.lower()
     schema_type = schema.get("type")
 
     if schema_type == "integer":
@@ -95,6 +99,42 @@ def generate_path_param_value(parameter: dict, spec: dict) -> str:
 
     if schema_type == "boolean":
         return "true"
+
+    if schema_type == "string":
+        if "format" in schema:
+            schema_format = schema["format"]
+
+            if schema_format == "uuid":
+                return "123e4567-e89b-12d3-a456-426614174000"
+
+            if schema_format == "date":
+                return "2024-01-01"
+
+            if schema_format == "date-time":
+                return "2024-01-01T00:00:00Z"
+
+        if param_name_lower.endswith("id") or param_name_lower == "id":
+            return "1"
+
+        if "slug" in param_name_lower:
+            return "example-slug"
+
+        if "username" in param_name_lower:
+            return "example-user"
+
+        if "email" in param_name_lower:
+            return "user@example.com"
+
+        if "name" in param_name_lower:
+            return "example-name"
+
+        if "status" in param_name_lower:
+            return "active"
+
+        if "path" in param_name_lower:
+            return "example-path"
+
+        return f"example-{param_name}"
 
     return f"example-{param_name}"
 

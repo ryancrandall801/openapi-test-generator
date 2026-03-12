@@ -5,7 +5,11 @@ from pathlib import Path
 import yaml
 
 from openapi_test_generator.generator import generate_test_file, write_test_file
-from openapi_test_generator.parser import extract_endpoints, load_openapi_spec
+from openapi_test_generator.parser import (
+    extract_endpoints,
+    get_base_url_from_spec,
+    load_openapi_spec,
+)
 
 
 DEFAULT_CONFIG_FILENAMES = [
@@ -45,26 +49,6 @@ def find_default_config() -> Path | None:
         path = Path(filename)
         if path.exists():
             return path
-    return None
-
-
-def get_base_url_from_spec(spec: dict) -> str | None:
-    """Return the first server URL from the OpenAPI spec, if present."""
-    servers = spec.get("servers", [])
-
-    if not isinstance(servers, list) or not servers:
-        return None
-
-    first_server = servers[0]
-
-    if not isinstance(first_server, dict):
-        return None
-
-    url = first_server.get("url")
-
-    if isinstance(url, str) and url.strip():
-        return url.strip()
-
     return None
 
 
@@ -177,13 +161,14 @@ def main() -> None:
         parser.error("--auth-header-name and --auth-token-env must be provided together")
 
     # Load OpenAPI spec
-    spec = load_openapi_spec(args.spec)
+    spec_source = args.spec
+    spec = load_openapi_spec(spec_source)
 
     # Resolve base URL priority
     base_url = (
         args.base_url
         or config.get("base_url")
-        or get_base_url_from_spec(spec)
+        or get_base_url_from_spec(spec, spec_source)
         or "http://localhost:8000"
     )
 

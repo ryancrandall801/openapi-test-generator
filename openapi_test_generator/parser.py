@@ -1,7 +1,7 @@
 import json
 import sys
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 from urllib.request import Request, urlopen
 
 import yaml
@@ -126,3 +126,35 @@ def extract_endpoints(
             endpoints.append((method_upper, path, merged_operation))
 
     return endpoints
+
+
+def get_base_url_from_spec(spec: dict, spec_source: str | None = None) -> str | None:
+    """Return the first server URL from the OpenAPI spec, resolving relative URLs when possible."""
+    servers = spec.get("servers", [])
+
+    if not isinstance(servers, list) or not servers:
+        return None
+
+    first_server = servers[0]
+
+    if not isinstance(first_server, dict):
+        return None
+
+    url = first_server.get("url")
+
+    if not isinstance(url, str) or not url.strip():
+        return None
+
+    url = url.strip()
+    parsed = urlparse(url)
+
+    if parsed.scheme in {"http", "https"}:
+        return url
+
+    if spec_source:
+        source_parsed = urlparse(str(spec_source))
+
+        if source_parsed.scheme in {"http", "https"}:
+            return urljoin(str(spec_source), url)
+
+    return url

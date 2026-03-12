@@ -25,7 +25,7 @@ export default function OpenApiTestGeneratorLandingPage() {
 
     setSpecUrl(demoUrl);
     setMethods("GET");
-    setTags("pet");
+    setTags("");
     setError("");
     setGeneratedCode("");
 
@@ -218,7 +218,7 @@ export default function OpenApiTestGeneratorLandingPage() {
                 onChange={(e) =>
                   setTags(e.target.value)
                 }
-                placeholder="pet"
+                placeholder=""
                 className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-slate-100"
               />
             </div>
