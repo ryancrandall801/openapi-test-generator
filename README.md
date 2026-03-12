@@ -1,206 +1,113 @@
 # OpenAPI Test Generator
 
-Turn your **OpenAPI specification into a runnable pytest suite instantly.**
+Turn your **OpenAPI spec into a runnable pytest suite.**
 
-Generate **real API tests automatically** from an OpenAPI spec.
-
-The generator reads an OpenAPI spec (JSON or YAML) and produces a pytest test file that:
-
-- Calls real endpoints
-- Generates request payloads
-- Validates response status codes
-- Validates response schemas
-- Generates negative tests (missing fields / invalid enums)
+Generate Python API tests automatically from OpenAPI JSON or YAML.
 
 ---
 
-# 10-Second Quickstart
-
-Generate a pytest API test suite from an OpenAPI spec in **two commands**.
-
-```bash
-pip install -e .
-openapi-testgen openapi.json
-```
-
-This generates:
-
-```
-generated/generated_api_tests.py
-```
-
-Run the tests:
-
-```bash
-python -m pytest generated/generated_api_tests.py -vv
-```
-
-That’s it — your OpenAPI spec is now a runnable pytest suite.
-
----
-
-# Demo
-
-Generate API tests from an OpenAPI spec in seconds.
+## Demo
 
 ![Demo](docs/demo.gif)
 
 ---
 
-# Example (Real API)
+## Quickstart
 
-Example using the public **ReqRes API**.
-
-Set your API key first:
-
-```powershell
-$env:REQRES_API_KEY="your_reqres_public_key"
-```
-
-Then run:
-
-```powershell
-openapi-testgen reqres_openapi.json
-python -m pytest generated/generated_api_tests.py -vv
-```
-
-Result:
-
-```
-4 passed in 1.55s
-```
-
-These tests make **real HTTP calls** and validate responses against the API schema.
-
----
-
-# Features
-
-✔ Generate pytest tests from OpenAPI specs  
-✔ Supports JSON and YAML specs  
-✔ Supports local files or spec URLs  
-✔ Generates request payloads automatically  
-✔ Generates query parameters automatically  
-✔ Validates responses with `jsonschema`  
-✔ Generates negative tests automatically  
-✔ Supports auth headers  
-✔ Filter by HTTP methods  
-✔ Filter by OpenAPI tags  
-✔ Supports config files for cleaner workflows
-
----
-
-# Installation
-
-Clone the repository and install locally:
+Install locally:
 
 ```bash
 pip install -e .
 ```
 
-The CLI command becomes available:
-
-```bash
-openapi-testgen
-```
-
----
-
-# Usage
-
-## Generate tests from a local spec
+Generate tests:
 
 ```bash
 openapi-testgen openapi.json
 ```
 
-This creates:
+Run them:
 
-```
-generated/generated_api_tests.py
+```bash
+python -m pytest generated/generated_api_tests.py -vv
 ```
 
 ---
 
-## Generate tests from an OpenAPI URL
+## Example
+
+Generate tests from a public OpenAPI spec:
 
 ```bash
-openapi-testgen https://api.example.com/openapi.json
+openapi-testgen https://petstore3.swagger.io/api/v3/openapi.json --methods GET
+```
+
+Run:
+
+```bash
+pytest generated/generated_api_tests.py
 ```
 
 ---
 
-## Specify a base URL
+## Features
 
-```bash
-openapi-testgen openapi.json --base-url https://api.example.com
-```
+- Generate pytest tests from OpenAPI specs
+- JSON and YAML support
+- Local files and remote URLs
+- Negative tests
+- Response schema validation
+- Auth header support
+- Method filtering
+- Tag filtering
+- Config file support
+- Web demo UI
 
 ---
 
-## Authentication headers
+## CLI Usage
 
-For APIs requiring authentication:
+Basic usage:
 
 ```bash
-openapi-testgen openapi.json \
+openapi-testgen spec.json
+```
+
+Custom output file:
+
+```bash
+openapi-testgen spec.json --output tests/generated_api_tests.py
+```
+
+Filter by method:
+
+```bash
+openapi-testgen spec.json --methods GET,POST
+```
+
+Filter by tags:
+
+```bash
+openapi-testgen spec.json --tags Users
+```
+
+Auth headers:
+
+```bash
+openapi-testgen spec.json \
   --auth-header-name Authorization \
   --auth-token-env API_TOKEN \
   --auth-scheme Bearer
 ```
 
-Generated tests will include:
-
-```python
-HEADERS = {
-    "Authorization": f"Bearer {os.environ['API_TOKEN']}"
-}
-```
-
 ---
 
-## Method filtering
+## Config File
 
-Generate tests only for certain HTTP methods.
-
-```bash
-openapi-testgen openapi.json --methods GET
-```
-
-or:
-
-```bash
-openapi-testgen openapi.json --methods GET,POST
-```
-
----
-
-## Tag filtering
-
-Generate tests only for endpoints with specific OpenAPI tags.
-
-```bash
-openapi-testgen openapi.json --tags Users
-```
-
-or multiple tags:
-
-```bash
-openapi-testgen openapi.json --tags Users,Auth
-```
-
----
-
-## Config file support
-
-You can keep generator options in a config file for shorter commands.
-
-Create `openapi-testgen.yaml` in the repo root:
+Create `openapi-testgen.yaml`:
 
 ```yaml
 base_url: https://reqres.in
-auth_header_name: x-api-key
-auth_token_env: REQRES_API_KEY
 methods: GET
 tags: Legacy
 ```
@@ -213,88 +120,58 @@ openapi-testgen reqres_openapi.json
 
 ---
 
-# Running the Generated Tests
+## Web Demo
 
-```bash
-python -m pytest generated/generated_api_tests.py -vv
-```
+The browser demo allows you to:
 
-The generated tests will:
+- paste an OpenAPI spec URL
+- preview generated pytest tests
+- copy generated tests
+- download the `.py` file
 
-- call the API
-- assert status codes
-- validate response schemas
-- run negative tests where applicable
+Example demo specs:
 
----
-
-# Example Generated Test
-
-```python
-def test_get_api_users():
-    response = requests.get(f"{BASE_URL}/api/users", headers=HEADERS)
-    assert response.status_code == 200
-
-    content_type = response.headers.get("Content-Type", "")
-    assert "application/json" in content_type
-
-    data = response.json()
-    schema = {...}
-    jsonschema.validate(data, schema)
-```
+- Swagger Petstore
+- ReqRes
+- GitHub API
 
 ---
 
-# Project Structure
+## Project Structure
 
 ```
 openapi_test_generator/
-    cli.py
-    parser.py
-    generator.py
+  cli.py
+  parser.py
+  generator.py
 
 tests/
-    test_parser.py
-    test_generator.py
+
+website/
 
 generated/
-    generated_api_tests.py
 
 docs/
-    demo.gif
+  demo.gif
 ```
 
 ---
 
-# Roadmap
+## Why this tool exists
 
-Potential future improvements:
+Writing API tests is repetitive.
 
-- Automatic auth detection from OpenAPI security schemes
-- Better path parameter examples
-- Response body sampling
-- CI integration examples
-- Web interface for generating tests
-- Hosted API test generation and monitoring
-
----
-
-# Why This Tool Exists
-
-Writing API tests manually is repetitive.
-
-OpenAPI already describes:
+OpenAPI specs already describe:
 
 - endpoints
-- schemas
+- request schemas
 - parameters
-- request bodies
 - responses
 
-This tool converts that specification into **working tests automatically**.
+This tool turns that information into runnable pytest tests instantly.
 
 ---
 
-# License
+## License
 
 MIT
