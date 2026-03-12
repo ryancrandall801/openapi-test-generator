@@ -228,6 +228,9 @@ def generate_sample_value(schema: dict, spec: dict) -> object:
     if "default" in schema:
         return schema["default"]
 
+    if "enum" in schema and schema["enum"]:
+        return schema["enum"][0]
+
     schema_type = schema.get("type")
 
     if schema_type == "string":

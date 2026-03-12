@@ -744,3 +744,14 @@ def test_build_request_call_includes_query_params() -> None:
     )
 
     assert result == 'response = requests.get(f"{BASE_URL}/users", params={\'page\': 1}, headers=HEADERS)'
+
+
+def test_generate_sample_value_uses_first_enum_value() -> None:
+    schema = {
+        "type": "string",
+        "enum": ["available", "pending", "sold"],
+    }
+
+    result = generate_sample_value(schema, {})
+
+    assert result == "available"

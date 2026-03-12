@@ -12,6 +12,7 @@ export default function OpenApiTestGeneratorLandingPage() {
   const [generatedCode, setGeneratedCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const scrollToDemo = () => {
     document
@@ -79,6 +80,23 @@ export default function OpenApiTestGeneratorLandingPage() {
       setIsLoading(false);
     }
   };
+
+  const handleCopy = async () => {
+    if (!generatedCode) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(generatedCode);
+      setCopied(true);
+
+      setTimeout(() => {
+        setCopied(false);
+      }, 1500);
+    } catch {
+      setError("Failed to copy generated tests.");
+  }
+};
 
   const features = [
     {
@@ -248,13 +266,22 @@ export default function OpenApiTestGeneratorLandingPage() {
         {/* OUTPUT */}
 
         <div className="mt-8 rounded-2xl border border-slate-800 bg-slate-950 p-6">
-          <div className="mb-3 text-sm text-slate-400">
-            Generated preview
+          <div className="mb-3 flex items-center justify-between">
+            <div className="text-sm text-slate-400">
+              Generated preview
+            </div>
+
+            <button
+              onClick={handleCopy}
+              disabled={!generatedCode}
+              className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {copied ? "Copied!" : "Copy tests"}
+            </button>
           </div>
 
           <pre className="overflow-x-auto whitespace-pre-wrap text-sm text-slate-300">
-            {generatedCode ||
-              "Generated tests will appear here..."}
+            {generatedCode || "Generated tests will appear here..."}
           </pre>
         </div>
       </section>
