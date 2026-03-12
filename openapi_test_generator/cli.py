@@ -1,8 +1,92 @@
 import argparse
+import json
 from pathlib import Path
+
+import yaml
 
 from openapi_test_generator.generator import generate_test_file, write_test_file
 from openapi_test_generator.parser import extract_endpoints, load_openapi_spec
+
+
+DEFAULT_CONFIG_FILENAMES = [
+    "openapi-testgen.yaml",
+    "openapi-testgen.yml",
+    "openapi-testgen.json",
+]
+
+
+def load_generator_config(config_path: Path) -> dict:
+    """Load generator config from YAML or JSON."""
+    try:
+        text = config_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return {}
+
+    suffix = config_path.suffix.lower()
+
+    try:
+        if suffix == ".json":
+            data = json.loads(text)
+        else:
+            data = yaml.safe_load(text)
+
+        if not isinstance(data, dict):
+            return {}
+
+        return data
+
+    except Exception:
+        return {}
+
+
+def find_default_config() -> Path | None:
+    """Return the first default config file found in the current directory."""
+    for filename in DEFAULT_CONFIG_FILENAMES:
+        path = Path(filename)
+        if path.exists():
+            return path
+    return None
+
+
+def get_base_url_from_spec(spec: dict) -> str | None:
+    """Return the first server URL from the OpenAPI spec, if present."""
+    servers = spec.get("servers", [])
+
+    if not isinstance(servers, list) or not servers:
+        return None
+
+    first_server = servers[0]
+
+    if not isinstance(first_server, dict):
+        return None
+
+    url = first_server.get("url")
+
+    if isinstance(url, str) and url.strip():
+        return url.strip()
+
+    return None
+
+
+def parse_csv_set(value: str | None, uppercase: bool = False) -> set[str] | None:
+    """Parse a comma-separated value into a set."""
+    if not value:
+        return None
+
+    items = []
+
+    for item in value.split(","):
+        cleaned = item.strip()
+
+        if not cleaned:
+            continue
+
+        if uppercase:
+            cleaned = cleaned.upper()
+
+        items.append(cleaned)
+
+    return set(items) if items else None
 
 
 def main() -> None:
@@ -24,8 +108,7 @@ def main() -> None:
 
     parser.add_argument(
         "--base-url",
-        default="http://localhost:8000",
-        help="Base URL used in the generated tests (default: http://localhost:8000)"
+        help="Base URL used in the generated tests (defaults to first OpenAPI server, then localhost)"
     )
 
     parser.add_argument(
@@ -53,35 +136,58 @@ def main() -> None:
         help="Optional auth scheme prefix (for example: Bearer)"
     )
 
+    parser.add_argument(
+        "--config",
+        help="Optional path to generator config file (.yaml, .yml, or .json)."
+    )
+
     args = parser.parse_args()
 
-    auth_fields = [args.auth_header_name, args.auth_token_env]
-    if any(auth_fields) and not all(auth_fields):
-        parser.error("--auth-header-name and --auth-token-env must be provided together")
+    # Load config file
+    config_path = Path(args.config) if args.config else find_default_config()
+    config = load_generator_config(config_path) if config_path else {}
 
-    selected_methods = None
-    if args.methods:
-        selected_methods = {
-            method.strip().upper()
-            for method in args.methods.split(",")
-            if method.strip()
-        }
+    # Methods filtering
+    selected_methods = parse_csv_set(
+        args.methods if args.methods is not None else config.get("methods"),
+        uppercase=True,
+    )
 
+    if selected_methods is not None:
         valid_methods = {"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"}
         invalid_methods = selected_methods - valid_methods
+
         if invalid_methods:
             parser.error(f"Unsupported methods: {', '.join(sorted(invalid_methods))}")
 
-    selected_tags = None
-    if args.tags:
-        selected_tags = {
-            tag.strip()
-            for tag in args.tags.split(",")
-            if tag.strip()
-        }
+    # Tags filtering
+    selected_tags = parse_csv_set(
+        args.tags if args.tags is not None else config.get("tags"),
+        uppercase=False,
+    )
 
-    spec_source = args.spec
-    spec = load_openapi_spec(spec_source)
+    # Auth configuration
+    auth_header_name = args.auth_header_name or config.get("auth_header_name")
+    auth_token_env = args.auth_token_env or config.get("auth_token_env")
+    auth_scheme = args.auth_scheme or config.get("auth_scheme")
+
+    auth_fields = [auth_header_name, auth_token_env]
+
+    if any(auth_fields) and not all(auth_fields):
+        parser.error("--auth-header-name and --auth-token-env must be provided together")
+
+    # Load OpenAPI spec
+    spec = load_openapi_spec(args.spec)
+
+    # Resolve base URL priority
+    base_url = (
+        args.base_url
+        or config.get("base_url")
+        or get_base_url_from_spec(spec)
+        or "http://localhost:8000"
+    )
+
+    # Extract endpoints
     endpoints = extract_endpoints(
         spec,
         selected_methods=selected_methods,
@@ -92,19 +198,21 @@ def main() -> None:
         print("No endpoints found.")
         return
 
+    # Generate test file
     output = generate_test_file(
         endpoints,
         spec,
-        args.base_url,
-        auth_header_name=args.auth_header_name,
-        auth_token_env=args.auth_token_env,
-        auth_scheme=args.auth_scheme,
+        base_url,
+        auth_header_name=auth_header_name,
+        auth_token_env=auth_token_env,
+        auth_scheme=auth_scheme,
     )
 
     output_path = Path(args.output)
     write_test_file(output_path, output)
 
     test_count = output.count("def test_")
+
     print(f"Generated {output_path.resolve()} with {test_count} test(s).")
 
 

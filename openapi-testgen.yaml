@@ -1,0 +1,5 @@
+base_url: https://reqres.in
+auth_header_name: x-api-key
+auth_token_env: REQRES_API_KEY
+methods: GET
+tags: Legacy
