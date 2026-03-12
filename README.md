@@ -35,7 +35,7 @@ Run the tests:
 python -m pytest generated/generated_api_tests.py -vv
 ```
 
-That's it — your OpenAPI spec is now a runnable pytest suite.
+That’s it — your OpenAPI spec is now a runnable pytest suite.
 
 ---
 
@@ -51,27 +51,16 @@ Generate API tests from an OpenAPI spec in seconds.
 
 Example using the public **ReqRes API**.
 
-```bash
-openapi-testgen reqres_openapi.json \
-  --base-url https://reqres.in \
-  --auth-header-name x-api-key \
-  --auth-token-env REQRES_API_KEY \
-  --methods GET \
-  --tags Legacy
+Set your API key first:
+
+```powershell
+$env:REQRES_API_KEY="your_reqres_public_key"
 ```
 
-Generated tests:
+Then run:
 
-```
-test_get_api_users
-test_get_api_users_id
-test_get_api_unknown
-test_get_api_unknown_id
-```
-
-Run them:
-
-```bash
+```powershell
+openapi-testgen reqres_openapi.json
 python -m pytest generated/generated_api_tests.py -vv
 ```
 
@@ -81,7 +70,7 @@ Result:
 4 passed in 1.55s
 ```
 
-These tests made **real HTTP calls** and validated the responses against the API schema.
+These tests make **real HTTP calls** and validate responses against the API schema.
 
 ---
 
@@ -89,13 +78,15 @@ These tests made **real HTTP calls** and validated the responses against the API
 
 ✔ Generate pytest tests from OpenAPI specs  
 ✔ Supports JSON and YAML specs  
-✔ Supports **local files or spec URLs**  
-✔ Generates **request payloads automatically**  
-✔ Validates responses with **jsonschema**  
-✔ Generates **negative tests automatically**  
-✔ Supports **auth headers**  
-✔ Filter by **HTTP methods**  
-✔ Filter by **OpenAPI tags**
+✔ Supports local files or spec URLs  
+✔ Generates request payloads automatically  
+✔ Generates query parameters automatically  
+✔ Validates responses with `jsonschema`  
+✔ Generates negative tests automatically  
+✔ Supports auth headers  
+✔ Filter by HTTP methods  
+✔ Filter by OpenAPI tags  
+✔ Supports config files for cleaner workflows
 
 ---
 
@@ -200,6 +191,28 @@ openapi-testgen openapi.json --tags Users,Auth
 
 ---
 
+## Config file support
+
+You can keep generator options in a config file for shorter commands.
+
+Create `openapi-testgen.yaml` in the repo root:
+
+```yaml
+base_url: https://reqres.in
+auth_header_name: x-api-key
+auth_token_env: REQRES_API_KEY
+methods: GET
+tags: Legacy
+```
+
+Then run:
+
+```bash
+openapi-testgen reqres_openapi.json
+```
+
+---
+
 # Running the Generated Tests
 
 ```bash
@@ -222,6 +235,9 @@ def test_get_api_users():
     response = requests.get(f"{BASE_URL}/api/users", headers=HEADERS)
     assert response.status_code == 200
 
+    content_type = response.headers.get("Content-Type", "")
+    assert "application/json" in content_type
+
     data = response.json()
     schema = {...}
     jsonschema.validate(data, schema)
@@ -243,6 +259,9 @@ tests/
 
 generated/
     generated_api_tests.py
+
+docs/
+    demo.gif
 ```
 
 ---
@@ -251,12 +270,12 @@ generated/
 
 Potential future improvements:
 
-- Query parameter generation
 - Automatic auth detection from OpenAPI security schemes
 - Better path parameter examples
 - Response body sampling
 - CI integration examples
 - Web interface for generating tests
+- Hosted API test generation and monitoring
 
 ---
 
