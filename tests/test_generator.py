@@ -5,6 +5,7 @@ from openapi_test_generator.generator import (
     format_python_literal,
     generate_invalid_enum_payloads,
     generate_missing_required_payloads,
+    generate_property_sample_value,
     generate_sample_value,
     generate_test_file,
     generate_path_param_value,
@@ -165,7 +166,7 @@ def test_generate_sample_value_resolves_ref() -> None:
     )
 
     assert value == {
-        "name": "string",
+        "name": "example-name",
         "age": 0,
         "active": True,
         "tags": ["string"],
@@ -186,7 +187,7 @@ def test_get_json_request_body_returns_generated_payload() -> None:
     payload = get_json_request_body(operation, spec)
 
     assert payload == {
-        "name": "string",
+        "name": "example-name",
         "age": 0,
         "active": True,
         "tags": ["string"],
@@ -208,7 +209,7 @@ def test_generate_test_file_includes_generated_post_test() -> None:
     output = generate_test_file(endpoints, spec)
 
     assert "def test_post_users():" in output
-    assert "payload = {'name': 'string', 'age': 0, 'active': True, 'tags': ['string']}" in output
+    assert "payload = {'name': 'example-name', 'age': 0, 'active': True, 'tags': ['string']}" in output
     assert 'response = requests.post(f"{BASE_URL}/users", json=payload)' in output
     assert "assert response.status_code == 201" in output
 
@@ -755,3 +756,45 @@ def test_generate_sample_value_uses_first_enum_value() -> None:
     result = generate_sample_value(schema, {})
 
     assert result == "available"
+
+
+def test_generate_sample_value_uses_email_format() -> None:
+    schema = {
+        "type": "string",
+        "format": "email",
+    }
+
+    result = generate_sample_value(schema, {})
+
+    assert result == "user@example.com"
+
+
+def test_generate_sample_value_uses_datetime_format() -> None:
+    schema = {
+        "type": "string",
+        "format": "date-time",
+    }
+
+    result = generate_sample_value(schema, {})
+
+    assert result == "2024-01-01T00:00:00Z"
+
+
+def test_generate_property_sample_value_uses_property_name_for_username() -> None:
+    schema = {
+        "type": "string",
+    }
+
+    result = generate_property_sample_value("username", schema, {})
+
+    assert result == "example-user"
+
+
+def test_generate_property_sample_value_uses_property_name_for_email() -> None:
+    schema = {
+        "type": "string",
+    }
+
+    result = generate_property_sample_value("email", schema, {})
+
+    assert result == "user@example.com"

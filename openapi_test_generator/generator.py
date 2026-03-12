@@ -216,6 +216,71 @@ def format_python_literal(value: object) -> str:
     return repr(value)
 
 
+def generate_property_sample_value(prop_name: str, schema: dict, spec: dict) -> object:
+    """Generate a more realistic sample value for an object property."""
+    if "$ref" in schema:
+        resolved_schema = resolve_ref(schema["$ref"], spec)
+        return generate_property_sample_value(prop_name, resolved_schema, spec)
+
+    if "example" in schema:
+        return schema["example"]
+
+    if "default" in schema:
+        return schema["default"]
+
+    if "enum" in schema and schema["enum"]:
+        return schema["enum"][0]
+
+    prop_name_lower = prop_name.lower()
+    schema_type = schema.get("type")
+    schema_format = schema.get("format")
+
+    if schema_type == "string":
+        if schema_format == "email" or "email" in prop_name_lower:
+            return "user@example.com"
+
+        if schema_format == "uuid" or prop_name_lower.endswith("uuid"):
+            return "123e4567-e89b-12d3-a456-426614174000"
+
+        if schema_format == "date":
+            return "2024-01-01"
+
+        if schema_format == "date-time":
+            return "2024-01-01T00:00:00Z"
+
+        if schema_format == "uri" or "url" in prop_name_lower or "uri" in prop_name_lower:
+            return "https://example.com"
+
+        if schema_format == "password" or "password" in prop_name_lower:
+            return "example-password"
+
+        if prop_name_lower in {"first_name", "firstname"}:
+            return "John"
+
+        if prop_name_lower in {"last_name", "lastname"}:
+            return "Doe"
+
+        if prop_name_lower == "name":
+            return "example-name"
+
+        if "username" in prop_name_lower:
+            return "example-user"
+
+        if "phone" in prop_name_lower:
+            return "555-123-4567"
+
+        if "status" in prop_name_lower:
+            return "active"
+
+        if "description" in prop_name_lower:
+            return "Example description"
+
+        if "title" in prop_name_lower:
+            return "Example title"
+
+    return generate_sample_value(schema, spec)
+
+
 def generate_sample_value(schema: dict, spec: dict) -> object:
     """Generate a simple sample value from a schema."""
     if "$ref" in schema:
@@ -232,14 +297,48 @@ def generate_sample_value(schema: dict, spec: dict) -> object:
         return schema["enum"][0]
 
     schema_type = schema.get("type")
+    schema_format = schema.get("format")
 
     if schema_type == "string":
+        if schema_format == "email":
+            return "user@example.com"
+
+        if schema_format == "uuid":
+            return "123e4567-e89b-12d3-a456-426614174000"
+
+        if schema_format == "date":
+            return "2024-01-01"
+
+        if schema_format == "date-time":
+            return "2024-01-01T00:00:00Z"
+
+        if schema_format == "uri":
+            return "https://example.com"
+
+        if schema_format == "hostname":
+            return "example.com"
+
+        if schema_format == "ipv4":
+            return "192.168.1.1"
+
+        if schema_format == "ipv6":
+            return "2001:db8::1"
+
+        if schema_format == "password":
+            return "example-password"
+
         return "string"
 
     if schema_type == "integer":
+        minimum = schema.get("minimum")
+        if minimum is not None:
+            return minimum
         return 0
 
     if schema_type == "number":
+        minimum = schema.get("minimum")
+        if minimum is not None:
+            return minimum
         return 0
 
     if schema_type == "boolean":
@@ -257,11 +356,19 @@ def generate_sample_value(schema: dict, spec: dict) -> object:
 
         for prop_name, prop_schema in properties.items():
             if prop_name in required_fields:
-                result[prop_name] = generate_sample_value(prop_schema, spec)
+                result[prop_name] = generate_property_sample_value(
+                    prop_name,
+                    prop_schema,
+                    spec,
+                )
 
         for prop_name, prop_schema in properties.items():
             if prop_name not in result:
-                result[prop_name] = generate_sample_value(prop_schema, spec)
+                result[prop_name] = generate_property_sample_value(
+                    prop_name,
+                    prop_schema,
+                    spec,
+                )
 
         return result
 
