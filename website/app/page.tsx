@@ -255,7 +255,29 @@ export default function OpenApiTestGeneratorLandingPage() {
               Generated preview
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950">
+            <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-950">
+
+              {/* Floating buttons */}
+              <div className="absolute right-3 top-3 flex gap-2 z-10">
+
+                <button
+                  onClick={handleCopy}
+                  disabled={!generatedCode}
+                  className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1 text-xs text-slate-200 hover:bg-slate-800 disabled:opacity-50"
+                >
+                  {copied ? "Copied!" : "Copy"}
+                </button>
+
+                <button
+                  onClick={handleDownload}
+                  disabled={!generatedCode}
+                  className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1 text-xs text-slate-200 hover:bg-slate-800 disabled:opacity-50"
+                >
+                  Download .py
+                </button>
+
+              </div>
+
               <SyntaxHighlighter
                 language="python"
                 style={oneDark}
@@ -266,7 +288,8 @@ export default function OpenApiTestGeneratorLandingPage() {
                   background: "transparent",
                   fontSize: "0.875rem",
                   lineHeight: "1.6",
-                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+                  fontFamily:
+                    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
                 }}
                 codeTagProps={{
                   style: {
@@ -276,6 +299,7 @@ export default function OpenApiTestGeneratorLandingPage() {
               >
                 {generatedCode || "# Generated tests will appear here..."}
               </SyntaxHighlighter>
+
             </div>
           </div>
         </section>
