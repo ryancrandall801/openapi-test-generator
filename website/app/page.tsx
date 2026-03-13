@@ -177,6 +177,17 @@ export default function OpenApiTestGeneratorLandingPage() {
               <button
                 onClick={() =>
                   fillDemo(
+                    "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
+                  )
+                }
+                className="rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-900"
+              >
+                Stripe
+              </button>
+
+              <button
+                onClick={() =>
+                  fillDemo(
                     "https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json"
                   )
                 }

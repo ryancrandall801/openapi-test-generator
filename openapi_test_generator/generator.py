@@ -448,6 +448,49 @@ def get_response_schema(operation: dict, spec: dict) -> dict | None:
     if not schema:
         return None
 
+    def dereference_schema(schema, spec, seen=None):
+        if seen is None:
+            seen = set()
+
+        if not schema:
+            return None
+
+        if not isinstance(schema, dict):
+            return schema
+
+        ref = schema.get("$ref")
+        if not ref:
+            return schema
+
+        if ref in seen:
+            return schema
+
+        if not ref.startswith("#/"):
+            return schema
+
+        seen.add(ref)
+
+        parts = ref.lstrip("#/").split("/")
+        resolved = spec
+
+        for part in parts:
+            if not isinstance(resolved, dict):
+                return schema
+            resolved = resolved.get(part)
+            if resolved is None:
+                return schema
+
+        dereferenced = dereference_schema(resolved, spec, seen.copy())
+
+        if isinstance(dereferenced, dict):
+            merged = dict(dereferenced)
+            for key, value in schema.items():
+                if key != "$ref":
+                    merged[key] = value
+            return merged
+
+        return dereferenced
+
     return dereference_schema(schema, spec)
 
 
