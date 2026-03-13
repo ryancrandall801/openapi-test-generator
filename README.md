@@ -10,6 +10,8 @@ parameter generation, and example payloads.
 ## Web Demo
 https://openapi-test-generator.vercel.app
 
+![Web UI](docs/ui-screenshot.png)
+
 ---
 
 ## Demo
