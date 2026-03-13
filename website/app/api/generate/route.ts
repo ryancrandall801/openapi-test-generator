@@ -33,9 +33,14 @@ export async function POST(request: NextRequest) {
       cache: "no-store",
     });
 
-    const data = await response.json();
+    const text = await response.text();
 
-    return NextResponse.json(data, { status: response.status });
+    return new NextResponse(text, {
+      status: response.status,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unknown error occurred.";
