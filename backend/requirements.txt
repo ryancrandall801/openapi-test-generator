@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+pydantic
+httpx
+pyyaml
+openapi-spec-validator
+jsonschema
+requests
+pytest
