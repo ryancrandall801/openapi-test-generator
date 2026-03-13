@@ -1,8 +1,12 @@
 # OpenAPI Test Generator
 
-Generate pytest API tests instantly from an OpenAPI spec.
+Generate pytest API tests instantly from an OpenAPI specification.
 
-Stop writing repetitive API tests.
+---
+
+## Live Demo
+
+https://openapi-test-generator.vercel.app
 
 ---
 
