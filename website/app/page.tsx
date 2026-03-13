@@ -40,6 +40,9 @@ export default function OpenApiTestGeneratorLandingPage() {
     setGeneratedCode("");
     setCopied(false);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     try {
       const response = await fetch("/api/generate", {
         method: "POST",
@@ -51,6 +54,7 @@ export default function OpenApiTestGeneratorLandingPage() {
           methods: methods.trim(),
           tags: tags.trim(),
         }),
+        signal: controller.signal,
       });
 
       const data = await response.json();
@@ -61,8 +65,15 @@ export default function OpenApiTestGeneratorLandingPage() {
 
       setGeneratedCode(data.generatedCode);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      if (err instanceof Error && err.name === "AbortError") {
+        setError(
+          "Generation timed out. Try a smaller spec or narrow the methods or tags."
+        );
+      } else {
+        setError(err instanceof Error ? err.message : "Something went wrong.");
+      }
     } finally {
+      clearTimeout(timeoutId);
       setIsLoading(false);
     }
   };
