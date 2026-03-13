@@ -1,11 +1,14 @@
 # OpenAPI Test Generator
+![Python](https://img.shields.io/badge/python-3.10+-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-Generate pytest API tests instantly from an OpenAPI spec.
+Generate runnable pytest API tests instantly from an OpenAPI specification.
 
-### Live Demo
+Paste a spec URL and automatically generate test code with JSON schema validation,
+parameter generation, and example payloads.
+
+## Web Demo
 https://openapi-test-generator.vercel.app
-
-Stop writing repetitive API tests by hand. Paste an OpenAPI URL or point to a local spec file and generate runnable pytest tests with request payloads, negative validation cases, and JSON schema checks.
 
 ---
 
@@ -15,7 +18,7 @@ Stop writing repetitive API tests by hand. Paste an OpenAPI URL or point to a lo
 
 ---
 
-## What it does
+## Features
 
 OpenAPI Test Generator creates Python API tests from OpenAPI JSON or YAML.
 
@@ -79,6 +82,9 @@ pytest generated/generated_api_tests.py
 ## Example generated test
 
 ```python
+import requests
+import jsonschema
+
 def test_get_pet_petId():
     response = requests.get(f"{BASE_URL}/pet/1")
     assert response.status_code == 200
@@ -160,6 +166,8 @@ openapi-testgen openapi.json
 
 ## Web Demo
 
+https://openapi-test-generator.vercel.app
+
 The browser demo lets you:
 
 - paste a public OpenAPI spec URL
@@ -179,13 +187,13 @@ Example demo specs:
 
 ```
 openapi_test_generator/
-  cli.py
-  parser.py
-  generator.py
+  cli.py        Command line interface
+  parser.py     OpenAPI parsing utilities
+  generator.py  Test generation logic
 
-tests/
+tests/          Unit tests
 
-website/
+website/        Next.js frontend
 
 docs/
   demo.gif
