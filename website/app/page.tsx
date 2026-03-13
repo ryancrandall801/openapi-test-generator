@@ -124,16 +124,22 @@ export default function OpenApiTestGeneratorLandingPage() {
           </div>
 
           <h1 className="mt-6 text-4xl font-semibold tracking-tight sm:text-5xl">
-            Turn your OpenAPI spec into a runnable pytest suite.
+            Generate pytest API tests instantly from your OpenAPI spec
           </h1>
 
           <p className="mt-4 text-lg text-slate-300">
-            Generate API tests automatically from an OpenAPI spec with request
-            payload generation, schema validation, negative tests, and
-            auth-aware configuration.
+            Paste an OpenAPI URL and automatically generate pytest tests with
+            positive requests, negative validation tests, and JSON schema
+            validation. No manual test writing required.
           </p>
-        </section>
 
+          <ul className="mt-6 space-y-2 text-sm text-slate-400">
+            <li>• Positive API tests</li>
+            <li>• Negative validation tests</li>
+            <li>• JSON schema response validation</li>
+            <li>• Path parameters and request payload generation</li>
+          </ul>
+        </section>
         {/* DEMO */}
         <section className="mt-10 rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

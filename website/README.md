@@ -1,36 +1,120 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OpenAPI Test Generator
 
-## Getting Started
+Generate pytest API tests instantly from an OpenAPI spec.
 
-First, run the development server:
+Stop writing repetitive API tests.
+
+---
+
+## Demo
+
+![Demo](demo.gif)
+
+---
+
+## Example
+
+Input OpenAPI spec:
+
+https://petstore3.swagger.io/api/v3/openapi.json
+
+Generate tests:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+openapi-testgen https://petstore3.swagger.io/api/v3/openapi.json
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Run tests:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pytest generated/generated_api_tests.py
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Result:
 
-## Learn More
+```
+collected 34 tests
+34 passed
+```
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## What It Generates
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+For every endpoint the generator creates:
 
-## Deploy on Vercel
+• positive API tests  
+• negative validation tests  
+• invalid enum tests  
+• JSON schema validation  
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Example generated test:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```python
+def test_post_pet():
+    payload = {
+        "name": "doggie",
+        "photoUrls": ["string"]
+    }
+
+    response = requests.post(f"{BASE_URL}/pet", json=payload)
+
+    assert response.status_code == 200
+    jsonschema.validate(response.json(), schema)
+```
+
+---
+
+## Install
+
+```bash
+pip install openapi-testgen
+```
+
+---
+
+## CLI Usage
+
+```bash
+openapi-testgen <openapi-spec>
+```
+
+Example:
+
+```bash
+openapi-testgen https://petstore3.swagger.io/api/v3/openapi.json
+```
+
+---
+
+## Options
+
+```
+--methods GET,POST
+--tags pet
+--base-url https://api.example.com
+--auth-header-name Authorization
+--auth-token-env API_TOKEN
+```
+
+---
+
+## Why This Exists
+
+Writing API tests is repetitive.
+
+If you already have an OpenAPI spec, the tests can be generated automatically.
+
+---
+
+## Website Demo
+
+Try it in the browser:
+
+https://your-site.com
+
+---
+
+## License
+
+MIT
