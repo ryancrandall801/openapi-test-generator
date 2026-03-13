@@ -7,7 +7,7 @@ Generate runnable pytest API tests instantly from an OpenAPI specification.
 Paste a spec URL and automatically generate test code with JSON schema validation,
 parameter generation, and example payloads.
 
-## Web Demo
+### Live Demo
 https://openapi-test-generator.vercel.app
 
 ![Web UI](docs/ui-screenshot.png)
