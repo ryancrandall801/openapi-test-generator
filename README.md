@@ -2,6 +2,9 @@
 
 Generate pytest API tests instantly from an OpenAPI spec.
 
+### Live Demo
+https://openapi-test-generator.vercel.app
+
 Stop writing repetitive API tests by hand. Paste an OpenAPI URL or point to a local spec file and generate runnable pytest tests with request payloads, negative validation cases, and JSON schema checks.
 
 ---
@@ -9,8 +12,6 @@ Stop writing repetitive API tests by hand. Paste an OpenAPI URL or point to a lo
 ## Demo
 
 ![Demo](docs/demo.gif)
-
-Live demo: https://openapi-test-generator.vercel.app
 
 ---
 
