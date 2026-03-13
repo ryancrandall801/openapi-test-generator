@@ -1,14 +1,33 @@
 # OpenAPI Test Generator
 
-Turn your **OpenAPI spec into a runnable pytest suite.**
+Generate pytest API tests instantly from an OpenAPI spec.
 
-Generate Python API tests automatically from OpenAPI JSON or YAML.
+Stop writing repetitive API tests by hand. Paste an OpenAPI URL or point to a local spec file and generate runnable pytest tests with request payloads, negative validation cases, and JSON schema checks.
 
 ---
 
 ## Demo
 
 ![Demo](docs/demo.gif)
+
+Live demo: https://openapi-test-generator.vercel.app
+
+---
+
+## What it does
+
+OpenAPI Test Generator creates Python API tests from OpenAPI JSON or YAML.
+
+Generated tests can include:
+
+- positive API requests
+- negative validation tests
+- invalid enum tests
+- JSON schema response validation
+- path parameter generation
+- request body generation
+- query parameter generation
+- auth header support
 
 ---
 
@@ -20,13 +39,13 @@ Install locally:
 pip install -e .
 ```
 
-Generate tests:
+Generate tests from an OpenAPI spec:
 
 ```bash
-openapi-testgen openapi.json
+openapi-testgen https://petstore3.swagger.io/api/v3/openapi.json --methods GET
 ```
 
-Run them:
+Run the generated tests:
 
 ```bash
 python -m pytest generated/generated_api_tests.py -vv
@@ -36,13 +55,19 @@ python -m pytest generated/generated_api_tests.py -vv
 
 ## Example
 
-Generate tests from a public OpenAPI spec:
+Input OpenAPI spec:
+
+```
+https://petstore3.swagger.io/api/v3/openapi.json
+```
+
+Generate tests:
 
 ```bash
 openapi-testgen https://petstore3.swagger.io/api/v3/openapi.json --methods GET
 ```
 
-Run:
+Run them:
 
 ```bash
 pytest generated/generated_api_tests.py
@@ -50,18 +75,19 @@ pytest generated/generated_api_tests.py
 
 ---
 
-## Features
+## Example generated test
 
-- Generate pytest tests from OpenAPI specs
-- JSON and YAML support
-- Local files and remote URLs
-- Negative tests
-- Response schema validation
-- Auth header support
-- Method filtering
-- Tag filtering
-- Config file support
-- Web demo UI
+```python
+def test_get_pet_petId():
+    response = requests.get(f"{BASE_URL}/pet/1")
+    assert response.status_code == 200
+
+    content_type = response.headers.get("Content-Type", "")
+    assert "application/json" in content_type
+
+    data = response.json()
+    jsonschema.validate(data, schema)
+```
 
 ---
 
@@ -79,19 +105,25 @@ Custom output file:
 openapi-testgen spec.json --output tests/generated_api_tests.py
 ```
 
-Filter by method:
+Filter by HTTP methods:
 
 ```bash
 openapi-testgen spec.json --methods GET,POST
 ```
 
-Filter by tags:
+Filter by OpenAPI tags:
 
 ```bash
 openapi-testgen spec.json --tags Users
 ```
 
-Auth headers:
+Set a custom base URL:
+
+```bash
+openapi-testgen spec.json --base-url https://api.example.com
+```
+
+Use auth headers:
 
 ```bash
 openapi-testgen spec.json \
@@ -102,38 +134,43 @@ openapi-testgen spec.json \
 
 ---
 
-## Config File
+## Config file support
 
-Create `openapi-testgen.yaml`:
+You can create an `openapi-testgen.yaml` file to avoid repeating CLI flags.
+
+Example:
 
 ```yaml
-base_url: https://reqres.in
+base_url: https://api.example.com
 methods: GET
-tags: Legacy
+tags: Users
+auth_header_name: Authorization
+auth_token_env: API_TOKEN
+auth_scheme: Bearer
 ```
 
 Then run:
 
 ```bash
-openapi-testgen reqres_openapi.json
+openapi-testgen openapi.json
 ```
 
 ---
 
 ## Web Demo
 
-The browser demo allows you to:
+The browser demo lets you:
 
-- paste an OpenAPI spec URL
+- paste a public OpenAPI spec URL
 - preview generated pytest tests
-- copy generated tests
-- download the `.py` file
+- copy generated code
+- download the generated `.py` file
+- see exact instructions for running the tests locally
 
 Example demo specs:
 
 - Swagger Petstore
-- ReqRes
-- GitHub API
+- GitHub REST API description
 
 ---
 
@@ -149,29 +186,40 @@ tests/
 
 website/
 
-generated/
-
 docs/
   demo.gif
 ```
 
 ---
 
-## Why this tool exists
+## Why this exists
 
 Writing API tests is repetitive.
 
-OpenAPI specs already describe:
+If you already have an OpenAPI spec, you already have most of the information needed to generate useful API tests:
 
 - endpoints
-- request schemas
+- methods
+- request bodies
 - parameters
-- responses
+- response schemas
 
 This tool turns that information into runnable pytest tests instantly.
 
 ---
 
+## Roadmap
+
+Possible future improvements:
+
+- improve generated sample data realism
+- add more example APIs
+- add GitHub Actions example workflow
+- improve generated fixtures/session handling
+- expand web demo polish
+
+---
+
 ## License
 
-MIT
+MIT License
