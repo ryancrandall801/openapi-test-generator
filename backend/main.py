@@ -65,7 +65,6 @@ async def generate_tests(body: GenerateRequest):
                 args,
                 capture_output=True,
                 text=True,
-                cwd=".",
             )
 
             if result.returncode != 0:
