@@ -4,6 +4,9 @@ import { useState } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
+const PREVIEW_LINES = 300;
+const MAX_HIGHLIGHT_LINES = 500;
+
 export default function OpenApiTestGeneratorLandingPage() {
   const [specUrl, setSpecUrl] = useState(
     "https://petstore3.swagger.io/api/v3/openapi.json"
@@ -112,6 +115,14 @@ export default function OpenApiTestGeneratorLandingPage() {
       body: "Generate GET smoke tests first, then grow into deeper API coverage.",
     },
   ];
+
+    const totalLines = generatedCode ? generatedCode.split("\n").length : 0;
+  const previewCode = generatedCode
+    ? generatedCode.split("\n").slice(0, PREVIEW_LINES).join("\n")
+    : "";
+
+  const isPreviewTruncated = totalLines > PREVIEW_LINES;
+  const shouldUseSyntaxHighlighting = totalLines > 0 && totalLines <= MAX_HIGHLIGHT_LINES;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -292,27 +303,62 @@ export default function OpenApiTestGeneratorLandingPage() {
 
               </div>
 
-              <SyntaxHighlighter
-                language="python"
-                style={oneDark}
-                showLineNumbers
-                customStyle={{
-                  margin: 0,
-                  padding: "1rem",
-                  background: "transparent",
-                  fontSize: "0.875rem",
-                  lineHeight: "1.6",
-                  fontFamily:
-                    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
-                }}
-                codeTagProps={{
-                  style: {
-                    background: "transparent"
-                  }
-                }}
-              >
-                {generatedCode || "# Generated tests will appear here..."}
-              </SyntaxHighlighter>
+              {generatedCode && isPreviewTruncated && (
+                <div className="px-4 py-3 text-xs text-slate-400 border-b border-slate-800 bg-slate-900/40">
+                  Showing first <span className="text-slate-200">{PREVIEW_LINES}</span> of{" "} 
+                  <span className="text-slate-200">{totalLines.toLocaleString()}</span> lines.
+                  Use <span className="text-slate-200">Copy</span> or{" "}
+                  <span className="text-slate-200">Download .py</span> for the full file.
+                </div>
+              )}
+
+              {generatedCode ? (
+                shouldUseSyntaxHighlighting ? (
+                  <SyntaxHighlighter
+                    language="python"
+                    style={oneDark}
+                    showLineNumbers
+                    customStyle={{
+                      margin: 0,
+                      padding: "1rem",
+                      background: "transparent",
+                      fontSize: "0.875rem",
+                      lineHeight: "1.6",
+                      fontFamily:
+                        "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                    }}
+                    codeTagProps={{
+                      style: {
+                        background: "transparent",
+                      },
+                    }}
+                  >
+                    {isPreviewTruncated ? previewCode : generatedCode}
+                  </SyntaxHighlighter>
+                ) : (
+                  <pre
+                    className="overflow-x-auto p-4 text-sm leading-6 text-slate-200"
+                    style={{
+                      margin: 0,
+                      fontFamily:
+                        "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                    }}
+                  >
+                    {isPreviewTruncated ? previewCode : generatedCode}
+                  </pre>
+                )
+              ) : (
+                <pre
+                  className="overflow-x-auto p-4 text-sm leading-6 text-slate-500"
+                  style={{
+                    margin: 0,
+                    fontFamily:
+                      "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                  }}
+                >
+                  {"# Generated tests will appear here..."}
+                </pre>
+              )}
 
             </div>
           </div>
