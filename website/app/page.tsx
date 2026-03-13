@@ -53,7 +53,7 @@ export default function OpenApiTestGeneratorLandingPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to generate tests.");
+        throw new Error(data.error || data.detail || "Failed to generate tests.");
       }
 
       setGeneratedCode(data.generatedCode);
