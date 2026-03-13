@@ -171,6 +171,10 @@ export default function OpenApiTestGeneratorLandingPage() {
               <p className="mt-1 text-sm text-slate-400">
                 Paste a public OpenAPI URL and preview generated pytest code.
               </p>
+
+              <p className="mt-2 text-xs text-slate-500">
+                Large specs may generate very large test files. Start with specific methods or tags if needed.
+              </p>
             </div>
 
             <div className="flex flex-col gap-2">
@@ -301,6 +305,12 @@ export default function OpenApiTestGeneratorLandingPage() {
             <div className="mb-3 text-sm text-slate-400">
               Generated preview
             </div>
+
+            {generatedCode && (
+              <div className="mb-2 text-xs text-slate-400">
+                Generated {totalLines.toLocaleString()} lines of pytest tests
+              </div>
+            )}
 
             <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-950">
 

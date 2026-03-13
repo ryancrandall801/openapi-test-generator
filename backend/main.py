@@ -72,32 +72,33 @@ async def generate_tests(body: GenerateRequest):
                 print("STDOUT:", result.stdout)
                 print("STDERR:", result.stderr)
 
-                stderr = result.stderr.lower()
+                stderr = (result.stderr or "").lower()
 
                 if "modulenotfounderror" in stderr or "no module named" in stderr:
                     message = "The generator backend is missing a required dependency."
-                elif "connection" in stderr or "failed to establish a new connection" in stderr:
+                elif "failed to establish a new connection" in stderr or "connection" in stderr:
                     message = "Could not fetch the OpenAPI spec from that URL."
+                elif "timeout" in stderr:
+                    message = "Fetching or generating tests took too long."
+                elif "openapi" in stderr or "swagger" in stderr or "validation" in stderr:
+                    message = "That document does not appear to be a valid OpenAPI spec."
                 elif "recursionerror" in stderr or "maximum recursion depth exceeded" in stderr:
                     message = "This spec is too complex to generate fully right now. Try narrowing by method or tag."
                 elif "keyerror" in stderr or "typeerror" in stderr or "attributeerror" in stderr:
                     message = "This spec uses schema patterns that are not fully supported yet."
-                elif "openapi" in stderr or "swagger" in stderr or "validation" in stderr:
-                    message = "That document does not appear to be a valid OpenAPI spec."
                 else:
                     message = "Test generation failed for this spec."
 
                 raise HTTPException(status_code=500, detail=message)
 
             if not output_path.exists():
+                print("Generator completed but no output file was created.")
+                print("STDOUT:", result.stdout)
+                print("STDERR:", result.stderr)
+
                 raise HTTPException(
                     status_code=500,
-                    detail=(
-                        "Generator completed but no output file was created.\n\n"
-                        f"Expected file: {output_path}\n\n"
-                        f"STDOUT:\n{result.stdout}\n\n"
-                        f"STDERR:\n{result.stderr}"
-                    ),
+                    detail="Generation completed, but no test file was produced."
                 )
 
             generated_code = output_path.read_text(encoding="utf-8")
