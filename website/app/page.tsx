@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { track } from "@vercel/analytics";
 
 const PREVIEW_LINES = 300;
 const MAX_HIGHLIGHT_LINES = 500;
@@ -28,6 +29,7 @@ export default function OpenApiTestGeneratorLandingPage() {
   };
 
   const handleGenerate = async () => {
+    track("generate_tests_clicked");
     const trimmedSpecUrl = specUrl.trim();
 
     if (!trimmedSpecUrl) {
