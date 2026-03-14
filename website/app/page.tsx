@@ -37,6 +37,18 @@ export default function OpenApiTestGeneratorLandingPage() {
       return;
     }
 
+    track("generate_tests_clicked", {
+      methods: methods.trim() || "all",
+      tags: tags.trim() || "all",
+      spec_host: (() => {
+        try {
+          return new URL(trimmedSpecUrl).host;
+        } catch {
+          return "invalid-url";
+        }
+      })(),
+    });
+
     setIsLoading(true);
     setError("");
     setGeneratedCode("");
